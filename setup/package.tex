@@ -1,0 +1,92 @@
+%---------------------------------------------------------------------------------
+%                学位论文LaTeX模板使用宏包文件
+%---------------------------------------------------------------------------------
+
+% 数学公式常用宏包（实现更多样的数学公式输入）
+\usepackage{amsmath}
+\newtheorem{myDef}{\hspace{2em}定义}[chapter]
+\usepackage{mathtools}
+\usepackage{wasysym}
+
+\makeatletter  
+\newif\if@restonecol  
+\makeatother  
+\let\algorithm\relax  
+\let\endalgorithm\relax  
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}%[ruled,vlined]{  
+\usepackage{algpseudocode}  
+\usepackage{amsmath}  
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}  % Use Input in the format of Algorithm  
+\renewcommand{\algorithmicensure}{\textbf{Output:}} % Use Output in the format of Algorithm   
+%\newcommand{\algorithmicbreak}{\textbf{break}}
+\newcommand{\Break}{\textbf{break}}
+\newcommand{\Retuan}{\textbf{return}}
+\usepackage{algorithmicx}
+
+\usepackage{colortbl}
+%\usepackage{algorithm}  
+%\usepackage{algpseudocode}  
+%\usepackage{amsmath}  
+%\renewcommand{\algorithmicrequire}{\textbf{Input:}}  % Use Input in the format of Algorithm  
+%\renewcommand{\algorithmicensure}{\textbf{Output:}} % Use Output in the format of Algorithm 
+
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+	basicstyle=\ttfamily,
+	numbers=left, 
+	%numberstyle=\tiny, 
+	keywordstyle=\color{blue!70},  
+	commentstyle=\color{red!50!green!50!blue!50}, 
+	frame=shadowbox, 
+	rulesepcolor=\color{red!20!green!20!blue!20},
+	tabsize=4,breaklines 
+}
+%\lstset{
+%	basicstyle=\ttfamily,
+%	numbers=left,
+%	keywordsstyle=\color[RGB]{0,0,255},
+%	commentstyle=\color[RGB]{0,128,0}
+%	frame=shadowbox,
+%	rulesepcolor=\color{red!20!green!20!blue!20},
+%	showspaces=false,
+%	showstringspaces=false,
+%	showtabs=false,
+%	tabsize=4,breaklines
+%}
+
+
+\usepackage{booktabs}
+\usepackage{threeparttable}
+\usepackage{amssymb}
+
+\usepackage{amsfonts}
+% 表格制作常用宏包（实现更多表格功能，比如不等线粗的三线表）
+\usepackage{multirow}
+\usepackage{booktabs}
+
+% 插入图片常用宏包（实现多种格式的调用）
+\usepackage{graphicx}
+
+% 图表题注格式宏包（实现《规范》要求的题注格式）
+\usepackage{caption}
+\captionsetup{labelformat=simple, labelsep=space, font=bf}
+
+% TeX系列标识的正确输入宏包（实现正确插入TeX相关的字符串）
+\usepackage{dtklogos}
+
+% 列表制作常用宏包（用于调用小间距列表）
+\usepackage{paralist}
+\usepackage{tabularx}
+\usepackage{array}
+% 外框宏包
+\usepackage{framed}
+
+% 引用文献实[Ni-Ni+j]的宏包
+\usepackage{cite}
+
+% 使用列表时要用到的包
+\usepackage{enumitem}
+% 英文采用Times New Rome字体（建议把这个宏包放在最后避免发生宏包冲突）
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
