@@ -197,7 +197,7 @@ Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金
 NC层实施方案有两种。第一种是直接在内核的TCP协议源码上更改，添加我们的NC层各个模块，然后再编译内核源码；第二种则是利用Linux内核提供给用户用于处理网络封包的框架——Netfilter，很多防火墙软件都是基于Netfilter开发的。考虑到工程复杂度，本文选择的是Netfilter框架。
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=6in]{figures/Netfilter.eps}
+	\includegraphics[width=6in]{figures/packetflow.eps}
 	\caption{Netfilter框架结构}
 	\label{NETFILTER_EPS}
 \end{figure}
@@ -209,9 +209,10 @@ Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防�
 	\item \textbf{NF\_IP\_LOCAL\_IN}:如果一个数据包是送往本机的，那么在作出这个路由决定之后，就会触发这个钩子。
 	\item \textbf{NF\_IP\_FORWARD}:如果一个数据包经过路由判定是送往其他机器的，那么就会触发这个钩子。
 	\item \textbf{NF\_IP\_POST\_ROUTING}:在数据包离开本机之前，会触发这个钩子。触发这个钩子的数据包包括从本机发往网络的包和仅仅是经过本机的路由判定后发往网络中其他机器的报文。
+	\item \textbf{NF\_IP\_LOCAL\_OUT}:数据包由本地发出去时，会执行挂载在这个钩子上的模块。
 \end{itemize}
 \par
-图\ref{NETFILTER_EPS}展示的是Netfilter的框架。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。
+图\ref{NETFILTER_EPS}展示的是Netfilter的框架。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编码模块分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
 \section{系统框架}
 图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
