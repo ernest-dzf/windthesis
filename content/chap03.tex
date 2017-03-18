@@ -182,16 +182,36 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\item 拼接两个结果得到$p_{encoded}=\{0000\ 0010\ 1010\ 0111\}$。
 \end{enumerate}
 \section{技术方案}
+\subsection{开发平台}
 TCP/NC的实现需要参与到协议栈的流程中去，涉及到内核开发。因此，只能选择开源的Linux平台。考虑到TCP/NC的应用场景主要是无线网络环境中的移动终端，我们决定选择一款嵌入式设备，在其上部署实现TCP/NC协议，以验证分析其在真实环境中的性能。
 \par
-Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金会开发。基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器，主频从700MHz到1.2GHz不等。本文选择的是Raspberry Pi 2B+，主频900MHz，板载Ethernet网口，4个USB借口及HDMI视频输出。不仅如此，Raspberry Pi还引出了40个管脚，便于我们使用KGDB调试工具。图\ref{RASP_EPS}即为
-\begin{figure}
+Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金会开发。基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器，主频从700MHz到1.2GHz不等\textsuperscript{\cite{rasp}}。不仅如此，Raspberry Pi还引出了40个管脚，便于我们使用KGDB调试工具调试内核。图\ref{RASP_EPS}即为本文选择的Raspberry Pi 二代B型，主频900MHz，板载Ethernet网口，4个USB接口及HDMI视频输出。
+\begin{figure}[htbp]
 	\centering
 \includegraphics[width=6in]{figures/rasp.pdf}
-\caption{Raspberry Pi}
+\caption{Raspberry Pi二代B型}
 \label{RASP_EPS}
 \end{figure}
-
+系统选择上，本文选择使用树莓派基金会的Debian系统，Linux内核版本为3.18\footnote{内核源码下载地址：\url{https://github.com/raspberrypi/linux}}。内核调试方案则选择使用KGDB调试工具，支持内核源码级别调试。
+\subsection{Netfilter}
+NC层实施方案有两种。第一种是直接在内核的TCP协议源码上更改，添加我们的NC层各个模块，然后再编译内核源码；第二种则是利用Linux内核提供给用户用于处理网络封包的框架——Netfilter，很多防火墙软件都是基于Netfilter开发的。考虑到工程复杂度，本文选择的是Netfilter框架。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/Netfilter.eps}
+	\caption{Netfilter框架结构}
+	\label{NETFILTER_EPS}
+\end{figure}
+Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防火墙通过与Linux内核网络协议栈的包过滤钩子交互来工作。这些内核钩子被称为Netfilter框架。Linux系统中允许注册钩子程序的点有5个。数据包在路过Linux的网络协议栈时（ 出去或者进来 ） 将触发这些钩子，允许注册这些钩子的函数处理处在钩子点处的报文。数据包所触发的钩子取决于数据包是传入还是传出，数据包的目的地，以及数据包在上一个钩子点是否被丢弃或拒绝。
+\par
+以下钩子表示网络协议栈中有标准定义的钩子点：
+\begin{itemize}[leftmargin=.5in]
+	\item \textbf{NF\_IP\_PRE\_ROUTING}:数据包在进入协议栈之后，在对这个数据包作出路由决定之前，会触发这个钩子。
+	\item \textbf{NF\_IP\_LOCAL\_IN}:如果一个数据包是送往本机的，那么在作出这个路由决定之后，就会触发这个钩子。
+	\item \textbf{NF\_IP\_FORWARD}:如果一个数据包经过路由判定是送往其他机器的，那么就会触发这个钩子。
+	\item \textbf{NF\_IP\_POST\_ROUTING}:在数据包离开本机之前，会触发这个钩子。触发这个钩子的数据包包括从本机发往网络的包和仅仅是经过本机的路由判定后发往网络中其他机器的报文。
+\end{itemize}
+\par
+图\ref{NETFILTER_EPS}展示的是Netfilter的框架。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。
 \section{系统框架}
 图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
