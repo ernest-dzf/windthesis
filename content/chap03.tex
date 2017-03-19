@@ -198,7 +198,7 @@ NC层实施方案有两种。第一种是直接在内核的TCP协议源码上更
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/packetflow.eps}
-	\caption{Netfilter框架结构}
+	\caption{Netfilter框架及其在内核源码中调用关系}
 	\label{NETFILTER_EPS}
 \end{figure}
 Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防火墙通过与Linux内核网络协议栈的包过滤钩子交互来工作。这些内核钩子被称为Netfilter框架。Linux系统中允许注册钩子程序的点有5个。数据包在路过Linux的网络协议栈时（ 出去或者进来 ） 将触发这些钩子，允许注册这些钩子的函数处理处在钩子点处的报文。数据包所触发的钩子取决于数据包是传入还是传出，数据包的目的地，以及数据包在上一个钩子点是否被丢弃或拒绝。
@@ -212,11 +212,11 @@ Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防�
 	\item \textbf{NF\_IP\_LOCAL\_OUT}:数据包由本地发出去时，会执行挂载在这个钩子上的模块。
 \end{itemize}
 \par
-图\ref{NETFILTER_EPS}展示的是Netfilter的框架。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编码模块分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
+图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编码模块分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
 \section{系统框架}
 图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
-从IP层上来的报文也需要经过数据包类别判定。控制报文直接交给控制报文处理模块处理，然后交给上层TCP层。对于纯ACK则在提取NC层有用信息后再交付给上层TCP层。数据报文则送到解码模块进行解码，不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息。
+从IP层上来的报文也需要经过数据包类别判定。控制报文直接交给控制报文处理模块处理，然后交给上层TCP层。对于纯ACK则在提取NC层有用信息后再交付给上层TCP层。数据报文则送到解码模块进行解码，不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息，以便让NC层控制单元决定是否向TCP连接的对方回复ACK。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/jiagou.eps}
