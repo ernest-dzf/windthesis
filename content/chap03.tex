@@ -213,6 +213,30 @@ Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防�
 \end{itemize}
 \par
 图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编码模块分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
+\subsection{报文获取}
+NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，其形式为\emph{sk\_buff}结构体。\emph{sk\_buff}可能是Linux网络代码中最重要的数据结构，包含了数据包所需的所有控制信息，代表已接收或正要传输的数据的报头\textsuperscript{\cite{linux网络技术内幕}}。在内核中，\emph{sk\_buff}被组织成链表，这样就可以快速地将\emph{sk\_buff}从一个链表移动到另一个链表。数据包在Linux的网络协议栈的不同层之间传递，其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。如\emph{sk\_buff}结构体中的data指针，其指向当前协议层的有效数据内容的起始地址。对于传输层，有效数据包括用户数据和传输层协议头部；对于网络层，有效数据包括用户数据、传输层协议和网络层协议头部；对于数据链路层，有效数据包括用户数据、传输层协议头部、网络层协议头部和链路层协议头部。因此，不同协议层需要移动\emph{sk\_buff}的data指针，以添加首部。这比在不同层之间拷贝数据包效率高得多。图\ref{SKBUFFEPS}为\emph{sk\_buff}数据结构示意图。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/skbuff.eps}
+	\caption{skbuff结构}
+	\label{SKBUFFEPS}
+\end{figure}
+
+\par
+
+上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。图\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息可以建立一个维护NC连接的控制块。在对数据包进行编码时，也是
+\begin{figure}
+	\begin{lstlisting}[language={[ANSI]C}]
+	static unsigned int ncout(unsigned int hooknum,struct sk_buff * skb,const struct net_device *in,
+	const struct net_device *out,int (*okfn) (struct sk_buff *))
+	{
+	//NC层处理流程	
+	} 
+	\end{lstlisting}
+	\caption{NF\_INET\_LOCAL\_OUT钩子点函数}
+	\label{NCOUT}
+\end{figure}
+
 \section{系统框架}
 图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
