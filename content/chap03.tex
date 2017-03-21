@@ -292,6 +292,7 @@ uint8_t    resv;	//reserved byte
 	\caption{NC头部结构}
 	\label{NCHEAD}
 \end{figure}
+\subsection{编解码流程}
 \subsection{NC层编码缓存}
 NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从小到大的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最小，链表尾部的sk\_buff代表的数据包的字节序号最大。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如图\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如图\ref{NCDEL}。
 
@@ -310,9 +311,6 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。借
 	\label{NCDEL}
 \end{figure}
 
-
-
-
 \par
 假定sk\_buff双向链表末尾sk\_buff对应数据包起始字节序号为$seq$，长度为$len$，新到的数据包的起始字节序号为$seq_{new}$。那么只会出现以下两种情况：
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
@@ -326,11 +324,139 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。借
 	\label{SKBUFFLINK_EPS}
 \end{figure}
 \subsection{NC层解码缓存}
-NC层的解码缓存比较复杂，涉及到3个队列，分别是backlog队列，decoding队列和Decoded队列。
+NC层的解码缓存比较复杂，涉及到数据包解码矩阵；涉及到系数解码矩阵；涉及到3个队列，分别是backlog队列，decoding队列和decoded队列。
+\subsubsection{\textbf{解码矩阵}}
+解码矩阵分为系数解码矩阵和数据包解码矩阵。
+NC解码端收到一个编码包，在判断这个编码包是有效包后，会提取其系数，并找到各个系数在系数解码矩阵中的位置。举个例子说明解码端解码流程。假定解码端先收到编码包$c_{1}=p_{1}$（ 这个编码包仅由一个原始数据包$p_{1}$组成 )，那么系数解码矩阵$coeffmat=\left[1\right]$，此时$p_{1}=p_{1}+q,q=0$，$p_{1}$是解出状态，数据包解码矩阵$pktmat=\left[p_{1}\right]$；然后解码端又收到编码包$c_{2}=p_{1}+2p_{2}$，提取其系数1和2，找到其在系数解码矩阵中的位置，并将系数放入其中，有：
+\begin{eqnarray}\label{eq31}
+	coeffmat=\left[ {\begin{array}{*{20}{c}}
+	1&0\\
+	1&2
+	\end{array}} \right]
+\end{eqnarray}
+将$c_{2}$放入数据包解码矩阵中，有
+\begin{equation}\label{eq32}
+pktmat = \left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{c_2}}
+	\end{array}} \right]
+\end{equation}
+为了看到$p_{2}$（ see $p_{2}$ ），我们需要构建$p_{2}=p_{2}+q$，其中$q=\sum\limits_{k = 2} {{a_k}{p_k}} $。
+构建$2 \times 2$的单位矩阵$leftmat$，然后对$\left[ {leftmat,coeffmat} \right]$行变换，目标是让$coeffmat$变成上三角矩阵。
+\begin{eqnarray}\label{eq33}
+\left[ {\begin{array}{*{20}{c}}
+	1&0&1&0\\
+	{{\rm{ - }}\frac{1}{2}}&{\frac{1}{2}}&0&1
+	\end{array}} \right]{\rm{ = }}M \cdot \left[ {\begin{array}{*{20}{c}}
+	1&0&1&0\\
+	0&1&1&2
+	\end{array}} \right]
+\end{eqnarray}
+式\ref{eq32}中的矩阵$M$代表一系列行变换，可以看到经过一系列行变换后
+\begin{equation}\label{eq34}
+leftmat = \left[ {\begin{array}{*{20}{c}}
+	1&0\\
+	{ - \frac{1}{2}}&{\frac{1}{2}} 
+	\end{array}} \right]
+\end{equation}
+此时，我们只需要将$leftmat$与数据包解码矩阵相乘即可得到$p_{2}$的值。即
+\begin{equation}\label{eq35}
+\left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{p_2}}
+	\end{array}} \right] = \left[ {\begin{array}{*{20}{c}}
+	1&0\\
+	{ - \frac{1}{2}}&{\frac{1}{2}}
+	\end{array}} \right]\left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{c_2}}
+	\end{array}} \right]
+\end{equation}
+可知$p_{2}=-\frac{1}{2}p_{1}+\frac{1}{2}c_{2}$，$p_{2}$已解码。此时系数解码矩阵
+\begin{eqnarray}\label{eq36}
+coeffmat=\left[ {\begin{array}{*{20}{c}}
+	1&0\\
+	0&1
+	\end{array}} \right]
+\end{eqnarray}
+数据包解码矩阵
+\begin{equation}\label{eq37}
+pktmat = \left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{p_2}}
+	\end{array}} \right]
+\end{equation}
+进一步假设，由于链路丢包，$c_{3}=p_{1}+2p_{2}+3p_{3}$丢了，接收端只收到$c_{4}=5p_{2}+4p_{3}+p_{4}$，那么此时的系数矩阵
+\begin{eqnarray}\label{eq38}
+coeffmat=\left[ {\begin{array}{*{20}{c}}
+	1&0&0&0\\
+	0&1&0&0\\
+	0&5&4&1
+	\end{array}} \right]
+\end{eqnarray}
+值得注意的是，编码包$c_{4}$的三个系数是如何放入系数矩阵的。$coeffmat\left[i\right]\left[j\right]$表示原始数据包$p_{j}$在第$i$个编码包中的系数。此处的序号$j$表示解码矩阵中原始数据包按照起始字节序号从小到大排序的第$j$位。序号$i$表示还残留在解码矩阵的编码包中按照序号排序的第$i$位。值得注意的是，对于解码矩阵第$k$个报文$pktmat[k]$，其内容在一次次的解码中是变化的。例如式\ref{eq32}中$pktmat\left[1\right]=c_2$，在解出$p_2$后，在式\ref{eq37}中$pktmat\left[1\right]=p_{2}$了。
+\par
+进一步地，取$leftmat$为$3 \times 3$的单位阵，我们对$\left[leftmat,coeffmat\right]$进行行变换，目标是让$coeffmat$成为上三角矩阵
+\begin{equation}\label{eq39}
+\left[ {\begin{array}{*{20}{c}}
+	1&0&0&1&0&0&0\\
+	0&1&0&0&1&0&0\\
+	0&{ - \frac{5}{4}}&{\frac{1}{4}}&0&0&1&{\frac{1}{4}}
+	\end{array}} \right] = M \cdot \left[ {\begin{array}{*{20}{c}}
+	1&0&0&1&0&0&0\\
+	0&1&0&0&1&0&0\\
+	0&0&1&0&5&4&1
+	\end{array}} \right]
+\end{equation}
+上式中$M$代表一系列行变换。此时系数解码矩阵和\emph{leftmat}分别为
+\begin{equation}\label{eq310}
+coeffmat = \left[ {\begin{array}{*{20}{c}}
+	1&0&0&0\\
+	0&1&0&0\\
+	0&0&1&{\frac{1}{4}}
+	\end{array}} \right]
+\end{equation}
+\begin{equation}\label{eq311}
+	leftmat = \left[ {\begin{array}{*{20}{c}}
+		1&0&0\\
+		0&1&0\\
+		0&{ - \frac{5}{4}}&{\frac{1}{4}}
+		\end{array}} \right]
+\end{equation}
+将$c_{3}$放入数据包解码矩阵
+\begin{equation}\label{eq312}
+	pktmat=\left[ {\begin{array}{*{20}{c}}
+		{{p_1}}\\
+		{{p_2}}\\
+		{{c_3}}
+		\end{array}} \right]
+\end{equation}
+由式\ref{eq310}，式\ref{eq311}，式\ref{eq312}可得
+\begin{equation}\label{eq313}
+{p_3} +   \frac{{{p_4}}}{4} = leftmat \cdot pktmat = \left[ {\begin{array}{*{20}{c}}
+	1&0&0\\
+	0&1&0\\
+	0&{ - \frac{5}{4}}&{\frac{1}{4}}
+	\end{array}} \right] \cdot \left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{p_2}}\\
+	{{c_3}}
+	\end{array}} \right]
+\end{equation}
+根据式\ref{eq313}，得出了$p_{3}=p_{3}+q$，其中$q=\sum\limits_{k = 3} {{a_k}{p_k}} $这种形式，因此接收端这边看到了$p_{3}$。此时，系数解码矩阵为式\ref{eq310}，数据包解码矩阵
+\begin{equation}
+pktmat = \left[ {\begin{array}{*{20}{c}}
+	{{p_1}}\\
+	{{p_2}}\\
+	{{p_3} + \frac{{{p_4}}}{4}}
+	\end{array}} \right]
+\end{equation}
+\par
+从上面的例子可以看出，解码端采用流水线解码；系数解码矩阵始终保持着上三角的状态；数据包解码矩阵的每一行在解码运算后始终保持着$p_{i}=p_{i}+q$（ 其中$q=\sum\limits_{k = i} {{a_k}{p_k}} $ ）这样的形式。
 \subsubsection{\textbf{backlog队列}}
-解码端在收到一个编码报文后，一般会先将其放入到backlog队列。下列情况除外：
-\begin{itemize}[leftmargin=.5in]
-	\item 组成当前编码数据包的原始数据包中最靠后的一个原始数据包的末尾字节序号小于处于decoding队列中最靠前的原始数据包的起始序号。逻辑上，
-\end{itemize}
+解码端在收到一个编码报文后，一般会先将其放入到backlog队列。但当组成当前编码数据包的原始数据包中最靠前的一个原始数据包的起始字节序号小于处于数据包解码矩阵中最靠前的原始数据包的起始序号时，这个编码包是无用的，会被丢弃，也就不会放入backlog队列中。逻辑上，在解码端，序号比解码矩阵中最靠前的原始数据包的序号还小的数据包是已经被删除了的，因此如果这个新到的编码包包含这个被删除的原始数据包，解码端也无法将其解出来。backlog队列不会管数据包是否按序到来，只要改编码数据包含有有用信息，就将其加入队列
+\par
+backlog队列的组织形式为sk\_buff的双向链表，与图\ref{SKBUFFLINK_EPS}结构一致。链表优先按构成编码包的原始数据包中的最靠后的原始数据包的起始字节号排序；两者一致的再按先来后到排序。
 \subsubsection{\textbf{decoding队列}}
+由于TCP连接中可能会出现乱序包，或者说由于一连串的丢包，导致新来的当前编码包虽然携带有用信息，但是还不能加入到decoding队列。
 \subsubsection{\textbf{decoded队列}}
