@@ -183,7 +183,7 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 \end{enumerate}
 \section{技术方案}
 \subsection{开发平台}
-TCP/NC的实现需要参与到协议栈的流程中去，涉及到内核开发。因此，只能选择开源的Linux平台。考虑到TCP/NC的应用场景主要是无线网络环境中的移动终端，我们决定选择一款嵌入式设备，在其上部署实现TCP/NC协议，以验证分析其在真实环境中的性能。
+TCP/NC的实现需要参与到协议栈的流程中去，涉及到内核开发。因此，只能选择开源的Linux平台。考虑到TCP/NC的应用场景主要是无线网络环境中的移动终端，本文决定选择一款嵌入式设备，在其上部署实现TCP/NC协议，以验证分析其在真实环境中的性能。
 \par
 Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金会开发。基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器，主频从700MHz到1.2GHz不等\textsuperscript{\cite{rasp}}。不仅如此，Raspberry Pi还引出了40个管脚，便于我们使用KGDB调试工具调试内核。图\ref{RASP_EPS}即为本文选择的Raspberry Pi 二代B型，主频900MHz，板载Ethernet网口，4个USB接口及HDMI视频输出。
 \begin{figure}[htbp]
@@ -212,7 +212,7 @@ Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防�
 	\item \textbf{NF\_IP\_LOCAL\_OUT}:数据包由本地发出去时，会执行挂载在这个钩子上的模块。
 \end{itemize}
 \par
-图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编码模块分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
+图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。本论文的NC层就是架构于Netfilter框架，将我们的NC层编解码模块$ncout$和$ncin$分别挂在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点上。凡是从TCP层下来的报文都会进入编码模块，凡是从IP层上来的报文都会进入解码模块。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
 \subsection{报文获取}
 NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，其形式为\emph{sk\_buff}结构体。\emph{sk\_buff}可能是Linux网络代码中最重要的数据结构，包含了数据包所需的所有控制信息，代表已接收或正要传输的数据的报头\textsuperscript{\cite{linux网络技术内幕}}。在内核中，\emph{sk\_buff}被组织成链表，这样就可以快速地将\emph{sk\_buff}从一个链表移动到另一个链表。数据包在Linux的网络协议栈的不同层之间传递，其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。如\emph{sk\_buff}结构体中的data指针，其指向当前协议层的有效数据内容的起始地址。对于传输层，有效数据包括用户数据和传输层协议头部；对于网络层，有效数据包括用户数据、传输层协议和网络层协议头部；对于数据链路层，有效数据包括用户数据、传输层协议头部、网络层协议头部和链路层协议头部。因此，不同协议层需要移动\emph{sk\_buff}的data指针，以添加首部。这比在不同层之间拷贝数据包效率高得多。图\ref{SKBUFFEPS}为\emph{sk\_buff}数据结构示意图。
 \begin{figure}[htbp]
@@ -224,7 +224,7 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \par
 
-上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。图\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息对数据包进行编码，建立一个维护NC连接的控制块。
+上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。图\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息建立一个维护NC连接的控制块,对数据包进行编码。
 \begin{figure}
 	\begin{lstlisting}[language={[ANSI]C}]
 	static unsigned int ncout(unsigned int hooknum,struct sk_buff * skb,const struct net_device *in,
@@ -239,7 +239,7 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \section{NC层关键技术}
 \subsection{系统框架}
-图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
+图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文等，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
 从IP层上来的报文也需要经过数据包类别判定。控制报文直接交给控制报文处理模块处理，然后交给上层TCP层。对于纯ACK则在提取NC层有用信息后再交付给上层TCP层。数据报文则送到解码模块进行解码，不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息，以便让NC层控制单元决定是否向TCP连接的对方回复ACK。
 \begin{figure}[htbp]
@@ -293,8 +293,15 @@ uint8_t    resv;	//reserved byte
 	\label{NCHEAD}
 \end{figure}
 \subsection{编解码流程}
+编码流程如图\ref{BIANMALC_EPS}。从TCP层下来的数据包进入ncout模块，通过ip\_hdr()函数获取数据包的IP头部，并进一步获取数据包的目的IP地址和上层协议类型，将其与编码IP地址表匹配，匹配成功而且上层协议类型是TCP，则进入下一步；否则直接交还给内核。接下来通过tcp\_hdr()函数获取tcp头部，进而判断该报文的SYN标志位是否置位，如果SYN置位，说明是建立连接的报文，则建立一个NC层的控制块，然后将报文交还内核，此控制块由源端口、目的端口、源IP和目的IP唯一标识。判断tcp头部的RST位，如果是RST报文，则重置NC层的连接和控制块信息；判断tcp头部的FIN标志位，如果是FIN报文，则断开连接，释放NC层相关资源。对于数据报文，调用nccoding\_input()函数进行编码；在将编码报文传给IP层之前，对于TCP报头的相关信息，如ACK确认号、接收窗口值等都需要重新计算。确认号需要修改为NC层下一个希望看到的数据包的序列号；接收窗口值需要在原有接收窗口值的基础上减去NC层积压的字节数。相关操作在ack\_process()函数中实现。
+\begin{figure}[htbp] 
+	\centering
+	\includegraphics[width=5in]{figures/encodelc.eps}
+	\caption{编码流程}
+	\label{BIANMALC_EPS}
+\end{figure}
 \subsection{NC层编码缓存}
-NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从小到大的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最小，链表尾部的sk\_buff代表的数据包的字节序号最大。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如图\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如图\ref{NCDEL}。
+NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每当有数据包进入NC层，先调用skb\_copy()\footnote{skb\_copy()函数说明参见\url{http://kernelbook.sourceforge.net/kernel-api.html/r2245.html}}函数将整个sk\_buff结构及其对应的数据buffer部分复制一遍，然后调用kfree\_skb()\footnote{kfree\_skb()函数说明参见：\url{http://kernelbook.sourceforge.net/kernel-api.html/r1204.html}}函数释放原有的sk\_buff。换句话说，NC层缓存的是原有数据包的拷贝。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从小到大的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最小，链表尾部的sk\_buff代表的数据包的字节序号最大。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如图\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如图\ref{NCDEL}。
 
 \begin{figure}
 	\begin{lstlisting}[language={[ANSI]C}]
@@ -327,7 +334,7 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。借
 NC层的解码缓存比较复杂，涉及到数据包解码矩阵；涉及到系数解码矩阵；涉及到3个队列，分别是backlog队列，decoding队列和decoded队列。
 \subsubsection{\textbf{解码矩阵}}
 解码矩阵分为系数解码矩阵和数据包解码矩阵。
-NC解码端收到一个编码包，在判断这个编码包是有效包后，会提取其系数，并找到各个系数在系数解码矩阵中的位置。举个例子说明解码端解码流程。假定解码端先收到编码包$c_{1}=p_{1}$（ 这个编码包仅由一个原始数据包$p_{1}$组成 )，那么系数解码矩阵$coeffmat=\left[1\right]$，此时$p_{1}=p_{1}+q,q=0$，$p_{1}$是解出状态，数据包解码矩阵$pktmat=\left[p_{1}\right]$；然后解码端又收到编码包$c_{2}=p_{1}+2p_{2}$，提取其系数1和2，找到其在系数解码矩阵中的位置，并将系数放入其中，有：
+NC解码端收到一个编码包，在判断这个编码包是有效包后，会提取其系数，并找到各个系数在系数解码矩阵中的位置。举个例子说明解码端解码流程。为了简单，下面所有运算都是在实数域，工程实践中是在$GF\left(2^8\right)$下进行运算的。假定解码端先收到编码包$c_{1}=p_{1}$（ 这个编码包仅由一个原始数据包$p_{1}$组成 )，那么系数解码矩阵$coeffmat=\left[1\right]$，数据包解码矩阵$pktmat=\left[c_1\right]$。我们得出了$p_{1}+q$，其中$q=0$这种形式，可见$p_{1}$是解出状态，数据包解码矩阵可以重新写为$pktmat=\left[p_{1}\right]$；然后解码端又收到编码包$c_{2}=p_{1}+2p_{2}$，提取其系数1和2，找到其在系数解码矩阵中的位置，并将系数放入其中，有：
 \begin{eqnarray}\label{eq31}
 	coeffmat=\left[ {\begin{array}{*{20}{c}}
 	1&0\\
@@ -352,7 +359,7 @@ pktmat = \left[ {\begin{array}{*{20}{c}}
 	0&1&1&2
 	\end{array}} \right]
 \end{eqnarray}
-式\ref{eq32}中的矩阵$M$代表一系列行变换，可以看到经过一系列行变换后
+式\ref{eq32}中的矩阵$M$代表一系列行变换，可以看到经过一系列行变换后，$coeffmat$已经变为单位阵
 \begin{equation}\label{eq34}
 leftmat = \left[ {\begin{array}{*{20}{c}}
 	1&0\\
@@ -423,7 +430,7 @@ coeffmat = \left[ {\begin{array}{*{20}{c}}
 		0&{ - \frac{5}{4}}&{\frac{1}{4}}
 		\end{array}} \right]
 \end{equation}
-将$c_{3}$放入数据包解码矩阵
+将$c_{4}$放入数据包解码矩阵
 \begin{equation}\label{eq312}
 	pktmat=\left[ {\begin{array}{*{20}{c}}
 		{{p_1}}\\
@@ -443,7 +450,7 @@ coeffmat = \left[ {\begin{array}{*{20}{c}}
 	{{c_3}}
 	\end{array}} \right]
 \end{equation}
-根据式\ref{eq313}，得出了$p_{3}=p_{3}+q$，其中$q=\sum\limits_{k = 3} {{a_k}{p_k}} $这种形式，因此接收端这边看到了$p_{3}$。此时，系数解码矩阵为式\ref{eq310}，数据包解码矩阵
+根据式\ref{eq313}，得出了$p_{3}+q$，其中$q=\sum\limits_{k = 3} {{a_k}{p_k}} $这种形式，因此接收端这边看到了$p_{3}$。此时，系数解码矩阵为式\ref{eq310}，数据包解码矩阵
 \begin{equation}
 pktmat = \left[ {\begin{array}{*{20}{c}}
 	{{p_1}}\\
@@ -452,11 +459,59 @@ pktmat = \left[ {\begin{array}{*{20}{c}}
 	\end{array}} \right]
 \end{equation}
 \par
-从上面的例子可以看出，解码端采用流水线解码；系数解码矩阵始终保持着上三角的状态；数据包解码矩阵的每一行在解码运算后始终保持着$p_{i}=p_{i}+q$（ 其中$q=\sum\limits_{k = i} {{a_k}{p_k}} $ ）这样的形式。
+从上面的例子可以看出，解码端采用流水线解码；系数解码矩阵始终保持着上三角的状态；数据包解码矩阵的每一行在解码运算后始终保持着$p_{i}+q$，其中$q=\sum\limits_{k = i} {{a_k}{p_k}} $ 这样的形式。
 \subsubsection{\textbf{backlog队列}}
 解码端在收到一个编码报文后，一般会先将其放入到backlog队列。但当组成当前编码数据包的原始数据包中最靠前的一个原始数据包的起始字节序号小于处于数据包解码矩阵中最靠前的原始数据包的起始序号时，这个编码包是无用的，会被丢弃，也就不会放入backlog队列中。逻辑上，在解码端，序号比解码矩阵中最靠前的原始数据包的序号还小的数据包是已经被删除了的，因此如果这个新到的编码包包含这个被删除的原始数据包，解码端也无法将其解出来。backlog队列不会管数据包是否按序到来，只要改编码数据包含有有用信息，就将其加入队列
 \par
-backlog队列的组织形式为sk\_buff的双向链表，与图\ref{SKBUFFLINK_EPS}结构一致。链表优先按构成编码包的原始数据包中的最靠后的原始数据包的起始字节号排序；两者一致的再按先来后到排序。
+backlog队列的组织形式为链表。链表优先按构成编码包的原始数据包中的最靠后的原始数据包的起始字节号排序；两者一致的再按先来后到排序。与编码端对sk\_buff的处理不同，这里并没有拷贝sk\_buff结构，而仅仅是通过指针的指向功能构建了一个链表，链表节点数据结构如图\ref{BACKLOG}所示，其组织形式如图\ref{BACKLOG_EPS}所示。
+\begin{figure}
+	\begin{lstlisting}[language={[ANSI]C}]
+	struct backlog{
+		struct backlog *next;
+		struct sk_buff *skb;
+	}
+	\end{lstlisting}
+	\caption{backlog链表节点数据结构}
+	\label{BACKLOG}
+\end{figure}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/backlog.eps}
+	\caption{backlog链表}
+	\label{BACKLOG_EPS}
+\end{figure}
 \subsubsection{\textbf{decoding队列}}
-由于TCP连接中可能会出现乱序包，或者说由于一连串的丢包，导致新来的当前编码包虽然携带有用信息，但是还不能加入到decoding队列。
+decoding队列用于存放处在数据包解码矩阵中的数据包，其中有些可能已经被解码，有些还未被解出。其组织形式类似图\ref{BACKLOG_EPS}，见图\ref{DECODED_EPS}。decoding队列节点数据结构定义如图\ref{DECODING}。其中，coeff[TCPNC\_COEFF\_LEN]用于存放处于decoding队列的报文在系数解码矩阵$coeffmat$中的系数；state则表示此报文的状态，decoded状态或者decoding状态。需要注意的是，decoding队列的报文可能已解出，也可能还处于undecoded状态。decoding队列的插入是在遍历backlog队列的过程中发生的，是否可以将某个报文从backlog队列中移到decoding队列需要根据当前的系数解码矩阵\emph{coeffmat}来决定。
+\par
+如果组成编码包的所有原始数据包的起始序号没有一个是紧接在目前已看到的序号最靠后的原始数据包的后面，那么这个编码包就不应该加入到decoding队列中去。假如目前系数解码矩阵为式\ref{eq310}，接收端在收到$c_4$后，又收到$c_5=ap_{5}+bp_{6}+cp_{7}$，如果我们将$c_5$加入decoding队列，同时将相应系数写到系数解码矩阵中，那么系数解码矩阵如图\ref{IFADD_EPS}所示，可以看到$c_5$的加入并不能让我们看到$p_{4}$，因此将其加入decoding队列是无益的。
+\begin{figure}[htbp]
+	\begin{lstlisting}[language={[ANSI]C}]
+	struct decoding
+	{
+	struct decoding *next;
+	struct sk_buff *skb;		
+	uint8_t coeff[TCPNC_COEFF_LEN];
+	unsigned int state;
+	};
+	\end{lstlisting}
+	\caption{decoding链表节点数据结构}
+	\label{DECODING}
+\end{figure}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=3in]{figures/ifadd.eps}
+	\caption{系数解码矩阵示例}
+	\label{IFADD_EPS}
+\end{figure}
+出现这种情况主要由于TCP连接中可能会出现乱序包，或者说由于一连串的丢包，导致新来的当前编码包虽然携带有用信息，但是还不能加入到decoding队列。
 \subsubsection{\textbf{decoded队列}}
+decoded队列主要用于存放已经解码出的报文。值得注意的是，decoded队列与decoding队列会有重叠，换句话说，有些数据包既在decoded队列，也在decoding队列，如图\ref{DECODED_EPS}。这是由于已经解码的数据包对于后续的解码可能还有用，因此得以留在解码队列里面。decoded队列与decoding队列的交集不会超过TCP\_NC\_WND个报文。在解码出数据包后，通过调用内核函数ip\_local\_deliver\_finish()\footnote{ip\_local\_deliver\_finish()函数说明参见\url{http://www.embeddedlinux.org.cn/linux_net/0596002556/understandlni-CHP-24-SECT-3.html}}函数将其交给TCP上层。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=5in]{figures/decoded.eps}
+	\caption{decoding队列和decoded队列}
+	\label{DECODED_EPS}
+\end{figure}
+当TCP上层的ACK来到NC层时，可以获知TCP层已确认的字节，然后据此删除decoded队列的数据报文。
+
+
