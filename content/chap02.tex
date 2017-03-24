@@ -301,7 +301,7 @@ c = \sum\limits_{j = 1}^m {{e_j}{p_{i \times k + j}}}
 	\end{threeparttable}  
 \end{table}  
 \par
-总结一下，\emph{ACK on degree of freedom}就是说我不再对原始数据包进行ACK确认，而是确认\emph{自由度}。只要接收端看到了某个报文（ see a packet )，即使没有解出来，依然可以恢复发送端对seen packet的确认。
+总结一下，\emph{ACK on degree of freedom}就是说我不再对原始数据包进行ACK确认，而是确认\emph{自由度}。只要接收端看到了某个报文（ see a packet )，即使没有解出来，依然可以回复发送端对seen packet的确认。
 \subsection{TCP/NC原理}
 \par
 网络编码自出现以来就作为一种重要的改善网络性能，尤其是无线网络性能的工具。它的主要优势在于能够跨时间、跨流地将数据混合起来。这可以让在lossy信道中的数据传输更为健壮和高效。尽管如此，我们还是很少看见应用网络编码的实际例子，一个主要原因就是如何将网络编码很自然地加入到现有的网络体系中，而不与其冲突。文献\cite{4298308}在对网络编码与现有协议结合中可能出现的问题作出过分析，具体到TCP来说，就是寻找一种能够与现有的TCP的滑动窗口兼容的编码机制。
