@@ -16,21 +16,18 @@
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}%[ruled,vlined]{  
 \usepackage{algpseudocode}  
 \usepackage{amsmath}  
-\renewcommand{\algorithmicrequire}{\textbf{Input:}}  % Use Input in the format of Algorithm  
-\renewcommand{\algorithmicensure}{\textbf{Output:}} % Use Output in the format of Algorithm   
-%\newcommand{\algorithmicbreak}{\textbf{break}}
-\newcommand{\Break}{\textbf{break}}
-\newcommand{\Retuan}{\textbf{return}}
-\usepackage{algorithmicx}
 
+%\renewcommand{\algorithmicrequire}{\textbf{In：}}  % Use Input in the format of Algorithm  
+%\renewcommand{\algorithmicensure}{\textbf{Out：}} % Use Output in the format of Algorithm   
+\newcommand{\Break}{\textbf{break}}
+\renewcommand{\Return}{\textbf{return}}
+%\usepackage{algorithmicx}
+%\renewcommand{\algorithmcfname}{算法}
 \usepackage{colortbl}
-%\usepackage{algorithm}  
-%\usepackage{algpseudocode}  
-%\usepackage{amsmath}  
-%\renewcommand{\algorithmicrequire}{\textbf{Input:}}  % Use Input in the format of Algorithm  
-%\renewcommand{\algorithmicensure}{\textbf{Output:}} % Use Output in the format of Algorithm 
 
 \usepackage{listings}
+\usepackage{float}
+\renewcommand{\lstlistingname}{代码}
 \usepackage{xcolor}
 \lstset{
 	basicstyle=\ttfamily,
@@ -42,18 +39,6 @@
 	rulesepcolor=\color{red!20!green!20!blue!20},
 	tabsize=4,breaklines 
 }
-%\lstset{
-%	basicstyle=\ttfamily,
-%	numbers=left,
-%	keywordsstyle=\color[RGB]{0,0,255},
-%	commentstyle=\color[RGB]{0,128,0}
-%	frame=shadowbox,
-%	rulesepcolor=\color{red!20!green!20!blue!20},
-%	showspaces=false,
-%	showstringspaces=false,
-%	showtabs=false,
-%	tabsize=4,breaklines
-%}
 
 
 \usepackage{booktabs}

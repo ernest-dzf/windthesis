@@ -157,10 +157,8 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\end{tabular}
 	\label{Exptab}
 \end{table}
-乘法和除法的关键代码如图\ref{GCAL}，\emph{gmul}实现乘法，\emph{gdiv}实现除法。
-\begin{figure}
-
-	\begin{lstlisting}[language={[ANSI]C}]
+乘法和除法的关键代码见代码\ref{GCAL}，\emph{gmul}实现乘法，\emph{gdiv}实现除法。
+	\begin{lstlisting}[caption=gmul和gdiv实现,label={GCAL},language={[ANSI]C}]
 	unsigned char gmul (unsigned char a, unsigned char b)
 	{
 	return Exp_tab[Log_tab[a] ^ Log_tab[b]];
@@ -170,9 +168,6 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	return Exp_tab[Log_tab[a] ^ Log_tab[b]];
 	}
 	\end{lstlisting}
-	\caption{gmul和gdiv实现}
-	\label{GCAL}
-\end{figure}
 
 \par
 我们以两\ref{GCAL}个数据包$p_{1}$和$p_{2}$的运算为例，说明如何对数据包进行编码。假定数据包$p_{1}$和$p_{2}$都为一个2字节的报文，以比特流的形式表示，$p_{1}=\{1010\ 0101\ 0110\ 1111\}$，$p_{2}=\{1111\ 0000\ 1101\ 0110\}$，我们需要计算$p_{encoded}=7p_{1} \oplus 13p_{2}$的值。步骤如下：
@@ -230,24 +225,20 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \par
 
-上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。图\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息建立一个维护NC连接的控制块,对数据包进行编码。
-\begin{figure}
-	\begin{lstlisting}[language={[ANSI]C}]
+上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。代码\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息建立一个维护NC连接的控制块,对数据包进行编码。
+	\begin{lstlisting}[caption=NF\_INET\_LOCAL\_OUT钩子点函数,label={NCOUT},language={[ANSI]C}]
 	static unsigned int ncout(unsigned int hooknum,struct sk_buff * skb,const struct net_device *in,
 	const struct net_device *out,int (*okfn) (struct sk_buff *))
 	{
 	//NC层处理流程	
 	} 
 	\end{lstlisting}
-	\caption{NF\_INET\_LOCAL\_OUT钩子点函数}
-	\label{NCOUT}
-\end{figure}
 
 \section{NC层关键技术}
 \subsection{系统框架}
-图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文等，则交由控制报文处理模块进行分类处理。这些控制报文没有包含数据，无需经过编解码即可发往IP层。如果从TCP层下来的是数据报文，则需要被送到编码模块进行编码。编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等。NC报文组包完毕后被发往IP层。对于从TCP层下来的纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
+图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文等，则交由控制报文处理模块进行分类处理。控制报文无需经过编解码即可发往IP层。如果从TCP层下来的是普通报文，数据报文需要被送到编码模块进行编码，编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等；纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
-从IP层上来的报文也需要经过数据包类别判定。控制报文直接交给控制报文处理模块处理，然后交给上层TCP层。对于纯ACK则在提取NC层有用信息后再交付给上层TCP层。数据报文则送到解码模块进行解码，不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息，以便让NC层控制单元决定是否向TCP连接的对方回复ACK。
+从IP层上来的报文也需要经过数据包类别判定。非NC层报文，即控制报文，直接交给控制报文处理模块处理，然后交给上层TCP层。NC报文，纯ACK则在提取NC层有用信息后再交付给上层TCP层；数据报文则送到解码模块进行解码。不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息，以便让NC层控制单元决定是否向TCP连接的对方回复ACK。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=5in]{figures/jiagou.eps}
@@ -257,16 +248,10 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \subsection{NC头部设计}
 NC层发往下层IP层的报文都需要添加一个NC头部，其中需要填写当前的线性组合报文是由哪几个原始报文组成，及各个原始报文的系数、长度。解码模块利用这些信息才可以进行相关的解码操作，恢复出原始数据包。本文TCP/NC实现中所选的数域是$GF\left(2^8\right)$，因此每个报文的系数都是一个字节大小。
-\begin{figure}[htbp] 
-	\centering
-	\includegraphics[width=5in]{figures/codingheader.eps}
-	\caption{NC层头部}
-	\label{CODINGHEADER_EPS}
-\end{figure}
 图\ref{CODINGHEADER_EPS}展示的是NC头部的布局。各个字段的含义如下：
 \begin{itemize}[leftmargin=.5in]
 	\item 源端口和目的端口：这两个端口号和源IP、目的IP一起唯一标识一个NC层的连接。从TCP数据报文的头部可以获得这两个信息。
-	\item $Base$： 表示TCP层中还未被确认的数据中第一个字节的序号。这个域可以从\emph{struct tcp\_sock}获得，即snd\_una。解码端利用这个值来决定哪些报文可以从缓存中删除。
+	\item $Base$： 表示TCP层中还未被确认的数据中第一个字节的序号。这个域可以从\emph{struct tcp\_sock}中的snd\_una域获得。解码端利用这个值来决定哪些报文可以从缓存中删除。
 	\item $Start$：参与生成当前编码包的原始报文中序号最靠前的一个原始报文的起始序号。
 	\item $Res$：用于分辨NC报文和TCP报文。
 	\item $RecvWnd$：对方的接收窗口值，这个接收窗口的值由TCP连接的对方根据它的解码缓存修改得到。
@@ -276,31 +261,33 @@ NC层发往下层IP层的报文都需要添加一个NC头部，其中需要填�
 	\item $len_{i}$：参与生成当前编码包的第$i$个原始报文的长度。
 	\item $\alpha_{i}$：参与生成当前编码包的第$i$个原始报文的系数。
 \end{itemize}
+\begin{figure}[htbp] 
+	\centering
+	\includegraphics[width=5in]{figures/codingheader.eps}
+	\caption{NC层头部}
+	\label{CODINGHEADER_EPS}
+\end{figure}
 \par
-\emph{Base}和\emph{Start}都是32比特，和标准TCP头部的\emph{seq}字段长度一致。$len_{i}$则占用2个字节，足够表示一个数据包的长度。以图\ref{CODINGHEADER_EPS}所示布局，一个编码包将需要多耗费$24+3n\left(n \ge 1\right)$个字节。其实还可以将报头开销进一步减小。例如，由于NC头部已经包含了端口信息、扩展因子、ACK序号、接收窗口，可以将它们从TCP的头部去掉，然后解码端在解码出相应报文后，再将相关信息补上，最后才交给TCP上层。图\ref{NCHEAD}为NC头部的结构体定义，最后出现的\emph{resv}字节是为了字节对齐。本文设定的编码窗口为\emph{TCPNC\_CODE\_WND=5}。
+\emph{Base}和\emph{Start}都是32比特，和标准TCP头部的\emph{seq}字段长度一致。$len_{i}$则占用2个字节，足够表示一个数据包的长度。以图\ref{CODINGHEADER_EPS}所示布局，一个编码包将需要多耗费$24+3n\left(n \ge 1\right)$个字节。其实还可以将报头开销进一步减小。例如，由于NC头部已经包含了端口信息、扩展因子、ACK序号、接收窗口，可以将它们从TCP的头部去掉，然后解码端在解码出相应报文后，再将相关信息补上，最后才交给TCP上层。代码\ref{NCHEAD}为NC头部的结构体定义，最后出现的\emph{resv}字节是为了字节对齐。本文设定的编码窗口为\emph{TCPNC\_CODE\_WND=5}，即最多一次编码5个包。
 \par
-对于TCP报文的长度不等的问题，如图\ref{NCHEAD}中的$p_{1}$，$p_{2}$，$p_{3}$所示。本文采取的方式是按照参与编码的原始报文的最长报文的长度为准，其他报文不够长的尾部补0。
-\begin{figure}
-	\begin{lstlisting}[language={[ANSI]C}]
+对于TCP报文的长度不等的问题，如图\ref{CODINGHEADER_EPS}中的$p_{1}$，$p_{2}$，$p_{3}$所示。本文采取的方式是按照参与编码的原始报文的最长报文的长度为准，其他报文不够长的尾部补0。
+	\begin{lstlisting}[float,caption=NC头部结构,label={NCHEAD},language={[ANSI]C}]
 struct nchdr{
-__be16    s_port;	//source port
-__be16    d_port;	//destination port
-__be32    base;		//base:the lowest sequence number of sender's buffer
-__be32    start;	//the first packet's sequence number
-__be16    resv1;    //used to distinguish NC packets from conventional packets
-__be32    rcvwnd;   //relative ack number's window
-__be32    ncack;	//ack number in NC layer
-uint8_t    n;		//the number of orginal packets
-uint8_t   wsacle;	//recieve window scale
-__be16    len[TCPNC_CODE_WND];
-uint8_t    a[TCPNC_CODE_WND];	//coeffience
-uint8_t    resv;	//reserved byte
+__be16 s_port;//source port
+__be16 d_port;//destination port
+__be32 base;//base:the lowest sequence number of sender's buffer
+__be32 start;//the first packet's sequence number
+__be16 resv1;//used to distinguish NC packets from conventional packets
+__be32 rcvwnd;//relative ack number's window
+__be32 ncack;//ack number in NC layer
+uint8_t n;//the number of orginal packets
+uint8_t wsacle;//recieve window scale
+__be16 len[TCPNC_CODE_WND];
+uint8_t a[TCPNC_CODE_WND];//coeffience
+uint8_t resv;//reserved byte
 };
 	\end{lstlisting}
-	\caption{NC头部结构}
-	\label{NCHEAD}
-\end{figure}
-\subsection{编解码流程}
+\subsection{编解码流程}%%%%%TODO：此处的流程图有问题，后期需要完善
 编码流程如图\ref{BIANMALC_EPS}。从TCP层下来的数据包进入ncout模块，通过ip\_hdr()函数获取数据包的IP头部指针，并进一步获取上层协议类型，如果上层协议是TCP，则进入下一步；否则直接交还给内核。接下来通过tcp\_hdr()函数获取tcp头部，进而判断该报文的SYN标志位是否置位，如果SYN置位，说明是建立连接的报文，则建立一个NC层的控制块，然后将报文交还内核，此控制块由源端口、目的端口、源IP和目的IP唯一标识。判断tcp头部的RST位，如果是RST报文，则重置NC层的连接和控制块信息；判断tcp头部的FIN标志位，如果是FIN报文，则修改NC层连接的有关状态，并将报文交还内核。对于ACK报文，如果有负载数据，则对其进行编码；在将编码报文传给IP层之前，对于TCP报头的相关信息，如ACK确认号、接收窗口值等都需要重新计算。确认号需要修改为NC层下一个希望看到的数据包的序列号；接收窗口值需要在原有接收窗口值的基础上减去NC层积压的字节数。
 \begin{figure}[htbp] 
 	\centering
@@ -316,11 +303,10 @@ uint8_t    resv;	//reserved byte
 	\caption{解码流程}
 	\label{JIEMALC_EPS}
 \end{figure}
-\subsection{NC层编码缓存}
-NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每当有数据包进入NC层，先调用skb\_copy()\footnote{skb\_copy()函数说明参见\url{http://kernelbook.sourceforge.net/kernel-api.html/r2245.html}}函数将整个sk\_buff结构及其对应的数据buffer部分复制一遍，然后调用kfree\_skb()\footnote{kfree\_skb()函数说明参见：\url{http://kernelbook.sourceforge.net/kernel-api.html/r1204.html}}函数释放原有的sk\_buff。换句话说，NC层缓存的是原有数据包的拷贝。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从小到大的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最小，链表尾部的sk\_buff代表的数据包的字节序号最大。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如图\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如图\ref{NCDEL}。
+\subsection{NC层编码缓存}%%%%%TODO：需要添加编码端的编码详细流程
+NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每当有数据包进入NC层，先调用skb\_copy()\footnote{skb\_copy()函数说明参见\url{http://kernelbook.sourceforge.net/kernel-api.html/r2245.html}}函数将整个sk\_buff结构及其对应的数据buffer部分复制一遍，然后调用kfree\_skb()\footnote{kfree\_skb()函数说明参见：\url{http://kernelbook.sourceforge.net/kernel-api.html/r1204.html}}函数释放原有的sk\_buff。换句话说，NC层缓存的是原有数据包的拷贝。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从大到小的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最大，链表尾部的sk\_buff代表的数据包的字节序号最小。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如代码\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如代码\ref{NCDEL}。
 
-\begin{figure}
-	\begin{lstlisting}[language={[ANSI]C}]
+	\begin{lstlisting}[float,caption=NC层编码缓存删包关键部分,label={NCDEL},language={[ANSI]C}]
 	...
 	struct tcp_sock *tp = tcp_sk(skb->sk);
 	__be32 snd_una=tp->snd_una;
@@ -330,9 +316,6 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每
 	}
 	...
 	\end{lstlisting}
-	\caption{NC层编码缓存删包关键部分}
-	\label{NCDEL}
-\end{figure}
 
 \par
 假定sk\_buff双向链表末尾sk\_buff对应数据包起始字节序号为$seq$，长度为$len$，新到的数据包的起始字节序号为$seq_{new}$。那么只会出现以下两种情况：
@@ -346,6 +329,43 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每
 	\caption{sk\_buff双向链表}
 	\label{SKBUFFLINK_EPS}
 \end{figure}
+%%%%%%%%%%%%%%%%%%%%%%
+\par
+编码过程比较简单，算法\ref{algo3}展示了如何对处于编码缓存中的数据包进行编码。
+\renewcommand{\algorithmcfname}{算法}
+\begin{algorithm}
+	\caption{对数据包进行编码} 
+	
+	\label{algo3}
+	\SetKwInOut{Input}{\textbf{输入}}\SetKwInOut{Output}{\textbf{输出}}
+	\Input{\\
+		冗余度因子 $R$;\\
+		编码缓存双向链表 $sk\_buff\_head$;\\
+		冗余度残留系数 $NUM$;\\
+		编码窗口 $TCPNC\_CODE\_WND$;
+	}
+	\Output{\\
+		编码报文链表 $sk\_buff\_ret$
+	}
+	$NUM \leftarrow NUM+R$;\\
+	\While{$NUM \ge 1$}  
+	{  
+		从$sk\_buff\_head$表头开始往后遍历$TCPNC\_CODE\_WND$个报文;\\
+		在$GF\left(2^8\right)$上生成$TCPNC\_CODE\_WND$个系数;\\
+		根据系数和原始数据包计算出编码包;\\
+		给编码报文添加NC头部;\\
+		将编码包加入到$sk\_buff\_ret$链表;\\
+		$NUM \leftarrow NUM-1$;
+	}
+	\Return \ $sk\_buff\_ret$;
+\end{algorithm}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
 \subsection{NC层解码缓存}
 NC层的解码缓存比较复杂，涉及到数据包解码矩阵；涉及到系数解码矩阵；涉及到3个队列，分别是backlog队列，decoding队列和decoded队列。
 \subsubsection{\textbf{解码矩阵}}
@@ -477,19 +497,16 @@ pktmat = \left[ {\begin{array}{*{20}{c}}
 \par
 从上面的例子可以看出，解码端采用流水线解码；系数解码矩阵始终保持着上三角的状态；数据包解码矩阵的每一行在解码运算后始终保持着$p_{i}+q$，其中$q=\sum\limits_{k = i} {{a_k}{p_k}} $ 这样的形式。
 \subsubsection{\textbf{backlog队列}}
-解码端在收到一个编码报文后，一般会先将其放入到backlog队列。但当组成当前编码数据包的原始数据包中最靠前的一个原始数据包的起始字节序号小于处于数据包解码矩阵中最靠前的原始数据包的起始序号时，这个编码包是无用的，会被丢弃，也就不会放入backlog队列中。逻辑上，在解码端，序号比解码矩阵中最靠前的原始数据包的序号还小的数据包是已经被删除了的，因此如果这个新到的编码包包含这个被删除的原始数据包，解码端也无法将其解出来。backlog队列不会管数据包是否按序到来，只要改编码数据包含有有用信息，就将其加入队列
+解码端在收到一个编码报文后，一般会先将其放入到backlog队列。但当组成当前编码数据包的原始数据包中最靠前的一个原始数据包的起始字节序号小于处于数据包解码矩阵中最靠前的原始数据包的起始序号时，这个编码包是无用的，会被丢弃，也就不会放入backlog队列中。逻辑上，在解码端，序号比解码矩阵中最靠前的原始数据包的序号还小的数据包是已经被删除了的，因此如果这个新到的编码包包含这个被删除的原始数据包，解码端也无法将其解出来。backlog队列不会管数据包是否按序到来，只要该编码数据包含有有用信息，就将其加入队列
 \par
-backlog队列的组织形式为链表。链表优先按构成编码包的原始数据包中的最靠后的原始数据包的起始字节号排序；两者一致的再按先来后到排序。与编码端对sk\_buff的处理不同，这里并没有拷贝sk\_buff结构，而仅仅是通过指针的指向功能构建了一个链表，链表节点数据结构如图\ref{BACKLOG}所示，其组织形式如图\ref{BACKLOG_EPS}所示。
-\begin{figure}
-	\begin{lstlisting}[language={[ANSI]C}]
+backlog队列的组织形式为链表。链表优先按构成编码包的原始数据包中的最靠后的原始数据包的起始字节号排序；两者一致的再按先来后到排序。与编码端对sk\_buff的处理不同，这里并没有拷贝sk\_buff结构，而仅仅是通过指针的指向功能构建了一个链表，链表节点数据结构如代码\ref{BACKLOG}所示，其组织形式如图\ref{BACKLOG_EPS}所示。
+	\begin{lstlisting}[float,caption=backlog链表节点数据结构,label={BACKLOG},language={[ANSI]C}]
 	struct backlog{
 		struct backlog *next;
 		struct sk_buff *skb;
 	}
 	\end{lstlisting}
-	\caption{backlog链表节点数据结构}
-	\label{BACKLOG}
-\end{figure}
+
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=4in]{figures/backlog.eps}
@@ -497,11 +514,10 @@ backlog队列的组织形式为链表。链表优先按构成编码包的原始�
 	\label{BACKLOG_EPS}
 \end{figure}
 \subsubsection{\textbf{decoding队列}}
-decoding队列用于存放处在数据包解码矩阵中的数据包，其中有些可能已经被解码，有些还未被解出。其组织形式类似图\ref{BACKLOG_EPS}，见图\ref{DECODED_EPS}。decoding队列节点数据结构定义如图\ref{DECODING}。其中，coeff[TCPNC\_COEFF\_LEN]用于存放处于decoding队列的报文在系数解码矩阵$coeffmat$中的系数；state则表示此报文的状态，decoded状态或者decoding状态。需要注意的是，decoding队列的报文可能已解出，也可能还处于undecoded状态。decoding队列的插入是在遍历backlog队列的过程中发生的，是否可以将某个报文从backlog队列中移到decoding队列需要根据当前的系数解码矩阵\emph{coeffmat}来决定。
+decoding队列用于存放处在数据包解码矩阵中的数据包，其中有些可能已经被解码，有些还未被解出。其组织形式类似图\ref{BACKLOG_EPS}，见图\ref{DECODED_EPS}。decoding队列节点数据结构定义如代码\ref{DECODING}。其中，coeff[TCPNC\_COEFF\_LEN]用于存放处于decoding队列的报文在系数解码矩阵$coeffmat$中的系数；state则表示此报文的状态，decoded状态或者decoding状态。需要注意的是，decoding队列的报文可能已解出，也可能还处于undecoded状态。decoding队列的插入是在遍历backlog队列的过程中发生的，是否可以将某个报文从backlog队列中移到decoding队列需要根据当前的系数解码矩阵\emph{coeffmat}来决定。
 \par
 如果组成编码包的所有原始数据包的起始序号没有一个是紧接在目前已看到的序号最靠后的原始数据包的后面，那么这个编码包就不应该加入到decoding队列中去。假如目前系数解码矩阵为式\ref{eq310}，接收端在收到$c_4$后，又收到$c_5=ap_{5}+bp_{6}+cp_{7}$，如果我们将$c_5$加入decoding队列，同时将相应系数写到系数解码矩阵中，那么系数解码矩阵如图\ref{IFADD_EPS}所示，可以看到$c_5$的加入并不能让我们看到$p_{4}$，因此将其加入decoding队列是无益的。
-\begin{figure}[htbp]
-	\begin{lstlisting}[language={[ANSI]C}]
+	\begin{lstlisting}[float,caption=decoding链表节点数据结构,label={DECODING},language={[ANSI]C}]
 	struct decoding
 	{
 	struct decoding *next;
@@ -510,16 +526,13 @@ decoding队列用于存放处在数据包解码矩阵中的数据包，其中有
 	unsigned int state;
 	};
 	\end{lstlisting}
-	\caption{decoding链表节点数据结构}
-	\label{DECODING}
-\end{figure}
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=3in]{figures/ifadd.eps}
 	\caption{系数解码矩阵示例}
 	\label{IFADD_EPS}
 \end{figure}
-出现这种情况主要由于TCP连接中可能会出现乱序包，或者说由于一连串的丢包，导致新来的当前编码包虽然携带有用信息，但是还不能加入到decoding队列。
+出现这种情况主要由于TCP连接中可能会出现乱序包，或者说由于一连串的丢包，导致新来的当前编码包虽然携带有用信息，但是还不能加入到decoding队列。decoding队列中存在的已解码的原数据包的个数不超过\emph{TCPNC\_CODE\_WND}个。我们不会直接删除decoding队列已解出的报文，而是会将其移出decoding队列，让其离开decoding队列和decoded队列的重合区域，待下次从TCP上层下来的ACK报文到来时，根据其确认序号再对decoded队列中的报文进行删除。
 \subsubsection{\textbf{decoded队列}}
 decoded队列主要用于存放已经解码出的报文。值得注意的是，decoded队列与decoding队列会有重叠，换句话说，有些数据包既在decoded队列，也在decoding队列，如图\ref{DECODED_EPS}。这是由于已经解码的数据包对于后续的解码可能还有用，因此得以留在解码队列里面。decoded队列与decoding队列的交集不会超过TCPNC\_CODE\_WND个报文。在解码出数据包后，通过调用内核函数ip\_local\_deliver\_finish()\footnote{ip\_local\_deliver\_finish()函数说明参见\url{http://www.embeddedlinux.org.cn/linux_net/0596002556/understandlni-CHP-24-SECT-3.html}}函数将其交给TCP上层。
 \begin{figure}[htbp]
@@ -528,7 +541,18 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	\caption{decoding队列和decoded队列}
 	\label{DECODED_EPS}
 \end{figure}
-当TCP上层的ACK来到NC层时，可以获知TCP层已确认的字节，然后据此删除decoded队列的数据报文。
+当TCP上层的ACK来到NC层时，可以获知TCP层已确认的字节，然后据此删除decoded队列的数据报文。代码\ref{DECODED}为decoded链表节点数据结构。其中\emph{seqno}表示解码出的数据报文的长度，\emph{length}表示该报文的起始序号，\emph{state}表示该解码包的状态。
+	\begin{lstlisting}[float,caption=decoded链表节点数据结构,label={DECODED},language={[ANSI]C}]
+	struct decoded
+	{
+		struct decoded *next;
+		struct sk_buff *skb;
+		unsigned int seqno;
+		unsigned short length;
+		unsigned int state;
+	};
+	\end{lstlisting}
+\subsection{接收窗口}
 \section{测试结果}
 本文在Raspberry pi上实现部署了TCP/NC协议，为了精确控制链路的丢包率，我们在接收端的IF\_IP\_PRE\_ROUTING和IF\_IP\_POST\_ROUTING这两处挂载了丢包函数，以概率$\rho$将报文丢弃掉。测试拓扑环境如图。
 
