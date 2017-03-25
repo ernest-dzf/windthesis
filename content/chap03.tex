@@ -272,38 +272,24 @@ NC层发往下层IP层的报文都需要添加一个NC头部，其中需要填�
 \par
 对于TCP报文的长度不等的问题，如图\ref{CODINGHEADER_EPS}中的$p_{1}$，$p_{2}$，$p_{3}$所示。本文采取的方式是按照参与编码的原始报文的最长报文的长度为准，其他报文不够长的尾部补0。
 	\begin{lstlisting}[float,caption=NC头部结构,label={NCHEAD},language={[ANSI]C}]
-struct nchdr{
-__be16 s_port;//source port
-__be16 d_port;//destination port
-__be32 base;//base:the lowest sequence number of sender's buffer
-__be32 start;//the first packet's sequence number
-__be16 resv1;//used to distinguish NC packets from conventional packets
-__be32 rcvwnd;//relative ack number's window
-__be32 ncack;//ack number in NC layer
-uint8_t n;//the number of orginal packets
-uint8_t wsacle;//recieve window scale
-__be16 len[TCPNC_CODE_WND];
-uint8_t a[TCPNC_CODE_WND];//coeffience
-uint8_t resv;//reserved byte
-};
+	struct nchdr{
+	__be16 s_port;//source port
+	__be16 d_port;//destination port
+	__be32 base;//base:the lowest sequence number of sender's buffer
+	__be32 start;//the first packet's sequence number
+	__be16 resv1;//used to distinguish NC packets from conventional packets
+	__be32 rcvwnd;//relative ack number's window
+	__be32 ncack;//ack number in NC layer
+	uint8_t n;//the number of orginal packets
+	uint8_t wsacle;//recieve window scale
+	__be16 len[TCPNC_CODE_WND];
+	uint8_t a[TCPNC_CODE_WND];//coeffience
+	uint8_t resv;//reserved byte
+	};
 	\end{lstlisting}
-\subsection{编解码流程}%%%%%TODO：此处的流程图有问题，后期需要完善
-编码流程如图\ref{BIANMALC_EPS}。从TCP层下来的数据包进入ncout模块，通过ip\_hdr()函数获取数据包的IP头部指针，并进一步获取上层协议类型，如果上层协议是TCP，则进入下一步；否则直接交还给内核。接下来通过tcp\_hdr()函数获取tcp头部，进而判断该报文的SYN标志位是否置位，如果SYN置位，说明是建立连接的报文，则建立一个NC层的控制块，然后将报文交还内核，此控制块由源端口、目的端口、源IP和目的IP唯一标识。判断tcp头部的RST位，如果是RST报文，则重置NC层的连接和控制块信息；判断tcp头部的FIN标志位，如果是FIN报文，则修改NC层连接的有关状态，并将报文交还内核。对于ACK报文，如果有负载数据，则对其进行编码；在将编码报文传给IP层之前，对于TCP报头的相关信息，如ACK确认号、接收窗口值等都需要重新计算。确认号需要修改为NC层下一个希望看到的数据包的序列号；接收窗口值需要在原有接收窗口值的基础上减去NC层积压的字节数。
-\begin{figure}[htbp] 
-	\centering
-	\includegraphics[width=5in]{figures/encodelc.eps}
-	\caption{编码流程}
-	\label{BIANMALC_EPS}
-\end{figure}
-\par
-解码流程如图\ref{JIEMALC_EPS}。从IP层上来的报文进入\emph{ncin}模块，根据IP头部的\emph{protocol}字段判断是否是TCP报文。如果不是TCP报文，则直接交还给内核；对于TCP报文则接着判断其是否是NC报文。TCP头部中与NC头部的\emph{resv}字段对应的区间是保留字段，该字段在TCP报文中为0，因此可以利用NC头部的resv字段与TCP报文进行区别。对于NC报文中的含数据报文，则进行解码，并根据解码结果决定是否发送ACK；对于NC报文中不含数据的报文，则直接交给上层TCP。对于非NC报文，主要是一些控制报文，根据各个报文的类别，如RST、FIN，更新NC层的相关状态信息，然后直接将报文交给上层TCP。
-\begin{figure}[htbp] 
-	\centering
-	\includegraphics[width=6in]{figures/decodelc.eps}
-	\caption{解码流程}
-	\label{JIEMALC_EPS}
-\end{figure}
-\subsection{NC层编码缓存}%%%%%TODO：需要添加编码端的编码详细流程
+\subsection{整体流程}%%%%%TODO：此处的流程图有问题，后期需要完善
+后面重构代码的时候再写。
+\subsection{NC层编码缓存}
 NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每当有数据包进入NC层，先调用skb\_copy()\footnote{skb\_copy()函数说明参见\url{http://kernelbook.sourceforge.net/kernel-api.html/r2245.html}}函数将整个sk\_buff结构及其对应的数据buffer部分复制一遍，然后调用kfree\_skb()\footnote{kfree\_skb()函数说明参见：\url{http://kernelbook.sourceforge.net/kernel-api.html/r1204.html}}函数释放原有的sk\_buff。换句话说，NC层缓存的是原有数据包的拷贝。借用内核中TCP源码对sk\_buff的组织形式，NC层的编码缓存以双向链表的形式组织，便于快速地删除插入，如图\ref{SKBUFFLINK_EPS}所示。链表中的sk\_buff按照字节序号从大到小的顺序排列，也就是链表头部的sk\_buff代表的数据包的字节序号最大，链表尾部的sk\_buff代表的数据包的字节序号最小。理论上说，编码缓存中的数据包当且仅当被接收端发过来的ACK确认后，才会从缓存中被删除。但在工程实现中，从编码缓存中删除数据包则根据的是Linux 内核TCP协议栈的\emph{tcp\_sock}数据结构中的\emph{snd\_una}域。\emph{struct tcp\_sock}是TCP协议的socket表示，是对\emph{struct inet\_connection\_sock}的扩充，增加了滑动窗口，拥塞控制等一些TCP属性。我们可以通过sk\_buff中的\emph{struct sock *sk}经强制转换获得，如代码\ref{NCDEL}。\emph{tcp\_sock}的\emph{snd\_una}域表示TCP层希望对方确认掉的数据中的最小序号。换句话说，序号在\emph{snd\_una}之前的数据都已经被确认了，TCP层的队列中也不存在这些数据了。上层TCP层都不保存这部分的数据，那么NC层自然可以安全地将这些数据从编码缓存中移除，关键代码如代码\ref{NCDEL}。
 
 	\begin{lstlisting}[float,caption=NC层编码缓存删包关键部分,label={NCDEL},language={[ANSI]C}]
@@ -553,8 +539,17 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	};
 	\end{lstlisting}
 \subsection{接收窗口}
+标准TCP中，接收端通过TCP报头的接收窗口值来告诉发送端我这边的接收缓存有多大，好让发送端及时调整发送速度，不至于因为接收端处理不过来导致丢包。考虑到我们在TCP层和IP层插入了一个NC层，而NC层又按照“seen packet”的概念代上层TCP向发送端确认了一些看到了但并没有解出的报文，而这部分报文的字节数是需要从TCP层下来的接收窗口值中减去的。
+\par
+图\ref{RCVWND_EPS}展示的是如何设置NC层的接收窗口值。$seq_{1}$由NC报头的Base值更新，表示的是发送端那边TCP层中还未被确认的数据中第一个字节的序号；$seq_{2}$由从本地上层TCP下来的报文头部的ACK序号更新，表示NC层已经安全交付给上层TCP的最靠后字节的下一字节序号；$seq_{3}$表示的是NC层提前发给发送端的确认序号，这个序号由看到的报文决定，因此一般会比TCP层的确认序号$seq_{2}$大一些。标准TCP协议中的接收窗口值是根据$seq_{2}$调整的，而NC层积压了一些数据，因此应该根据$seq_{3}$调整接收窗口值。假设从TCP层下来的接收窗口值为$RecvTCP$，NC层在填写NC报头的$RecvWnd$域时，其值应该为$RecvWnd=RecvTCP-\left(seq_{3}-seq_{2}\right)$。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=5in]{figures/rcvwnd.eps}
+	\caption{接收端NC层窗口值设定}
+	\label{RCVWND_EPS}
+\end{figure}
 \section{测试结果}
-本文在Raspberry pi上实现部署了TCP/NC协议，为了精确控制链路的丢包率，我们在接收端的IF\_IP\_PRE\_ROUTING和IF\_IP\_POST\_ROUTING这两处挂载了丢包函数，以概率$\rho$将报文丢弃掉。测试拓扑环境如图。
+本文在Raspberry pi上实现部署了TCP/NC协议，为了精确控制链路的丢包率，我们在接收端的IF\_IP\_PRE\_ROUTING和IF\_IP\_POST\_ROUTING这两处挂载了丢包函数，以概率$\rho$将报文丢弃掉。测试拓扑如图\ref{TUOPU_EPS}。
 
 \begin{figure}[htbp]
 	\centering
@@ -562,4 +557,24 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	\caption{测试拓扑}
 	\label{TUOPU_EPS}
 \end{figure}
-
+测试环境参数如表\ref{tab:CESHI}。
+\begin{table}[htp]
+	\centering
+	\caption{测试环境参数}
+	\label{tab:CESHI}
+	\begin{tabular}{ll}
+		\toprule
+		参数名称&参数值\tabularnewline
+		\midrule
+		机型		&Raspberry Pi 2 Model B\tabularnewline
+		CPU		&900MHz quad-core ARM Cortex-A7 CPU\tabularnewline
+		RAM			&1G\tabularnewline
+		以太网卡 	&10M/100M\tabularnewline
+		操作系统 &Debian\tabularnewline
+		内核版本 &Linux 3.18\tabularnewline
+		TCP协议版本 &TCP-vegas\tabularnewline
+		测试软件 &iperf\tabularnewline
+		\bottomrule
+	\end{tabular}
+\end{table}
+设置丢包率$\rho=5\%$，冗余度
