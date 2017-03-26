@@ -48,6 +48,7 @@ networks random bit error rate (BER) is negligible, and con-},
   number    = {6},
   pages     = {1281--1294},
   month     = {dec},
+  abstract  = {使用load factor作为拥塞控制的标志},
   doi       = {10.1109/tnet.2007.912037},
   file      = {:one more bit is enough.pdf:PDF},
   publisher = {Institute of Electrical and Electronics Engineers ({IEEE})},
@@ -546,7 +547,11 @@ networks random bit error rate (BER) is negligible, and con-},
   year      = {2009},
   pages     = {65-70},
   month     = {Dec},
-  abstract  = {We propose a novel dynamic network coding retransmission scheme which can effectively mask packet losses and have a quite low decoding delay. By using network coding, we reduce the retransmission waiting time, and by using the implicit information of seen scheme, we acquire the exact number of packets the receiver needs for decoding packets. As our scheme does not require or estimate the loss rate to send redundancies in a constant rate, it is more practical to be implemented in a real system. Furthermore, we incorporate network coding with a load factor based congestion control algorithm which is easy and efficient to be implemented in practical systems. Simulation results show that our scheme significantly outperforms the previous coding approach in reducing decoding delay without sacrificing throughput. It achieves the near-zero congestion loss and Â¿zeroÂ¿ error loss in wireless networks, can be easily and effectively implemented in the practical system.},
+  abstract  = {作者提出了NC层的一个重传机制，这个重传机制基于接收端反馈的解码矩阵信息，包含了解码矩阵还需要多少个报文才可以解出来。在重传的时候
+不是继续重传TCPNC_CODE_WND个报文，而是重传编码窗口中前loss（或者loss-lastlost）个报文的编码组合
+
+TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
+就是会让rtt增大啊？这时候tcp-vegas不就会认为出现了拥塞了？？？},
   doi       = {10.1109/PCCC.2009.5403816},
   file      = {:towards zero loss for tcp in wireless networks.pdf:PDF},
   issn      = {1097-2641},
@@ -561,6 +566,7 @@ networks random bit error rate (BER) is negligible, and con-},
   volume   = {8},
   number   = {6},
   pages    = {800--811},
+  abstract = {文章设计了一个新的冗余度算法，并根据冗余度计算编码窗口的值，动态改变编码窗口大小},
   file     = {:adaptive network coding scheme for tcp over wireless sensor.pdf:PDF},
   keywords = {rank5},
 }
@@ -685,6 +691,148 @@ networks random bit error rate (BER) is negligible, and con-},
   pages        = {586--599},
   organization = {Springer},
   file         = {:loss differentiation schemes for tcp over wireless networks.pdf:PDF},
+}
+
+@Article{xia2005one,
+  author    = {Xia, Yong and Subramanian, Lakshminarayanan and Stoica, Ion and Kalyanaraman, Shivkumar},
+  title     = {One more bit is enough},
+  journal   = {ACM SIGCOMM Computer Communication Review},
+  year      = {2005},
+  volume    = {35},
+  number    = {4},
+  pages     = {37--48},
+  abstract  = {提出了VCP协议，利用了留给ECN的两个bit，将拥塞信息编码进去
+
+主要是关于拥塞控制},
+  file      = {:One More Bit Is Enough 2.pdf:PDF},
+  publisher = {ACM},
+}
+
+@Article{jain1998osu,
+  author  = {Jain, Raj and Kalyanaraman, Shiv and Viswanathan, Ram},
+  title   = {The OSU scheme for congestion avoidance in ATM networks using explicit rate indication},
+  journal = {arXiv preprint cs/9809080},
+  year    = {1998},
+  file    = {:The OSU Scheme for Congestion Avoidance in ATM Networks Using Explicit Rate Indication.pdf:PDF},
+}
+
+@Article{1705002,
+  author   = {T. Ho and M. Medard and R. Koetter and D. R. Karger and M. Effros and J. Shi and B. Leong},
+  title    = {A Random Linear Network Coding Approach to Multicast},
+  journal  = {IEEE Transactions on Information Theory},
+  year     = {2006},
+  volume   = {52},
+  number   = {10},
+  pages    = {4413-4430},
+  month    = {Oct},
+  issn     = {0018-9448},
+  abstract = {We present a distributed random linear network coding approach for transmission and compression of information in general multisource multicast networks. Network nodes independently and randomly select linear mappings from inputs onto output links over some field. We show that this achieves capacity with probability exponentially approaching 1 with the code length. We also demonstrate that random linear coding performs compression when necessary in a network, generalizing error exponents for linear Slepian-Wolf coding in a natural way. Benefits of this approach are decentralized operation and robustness to network changes or link failures. We show that this approach can take advantage of redundant network capacity for improved success probability and robustness. We illustrate some potential advantages of random linear network coding over routing in two examples of practical scenarios: distributed network operation and networks with dynamically varying connections. Our derivation of these results also yields a new bound on required field size for centralized network coding on general multicast networks},
+  doi      = {10.1109/TIT.2006.881746},
+  file     = {:A Random Linear Network Coding Approach to Multicast.pdf:PDF},
+  keywords = {data communication;linear codes;multicast communication;probability;random codes;source coding;telecommunication network routing;Slepian-Wolf coding;decentralized operation;distributed network coding approach;information compression;information transmission;multisource multicast network;network capacity;network routing;probability;random linear coding;Artificial intelligence;Associate members;Capacity planning;Computer science;Helium;Laboratories;Network coding;Robustness;Routing;Vectors;Distributed compression;distributed networking;multicast;network coding;random linear coding},
+}
+
+@MastersThesis{xwq,
+  author   = {许文庆},
+  title    = {TCP/NC在Linux下的实现及改进},
+  school   = {天津大学},
+  year     = {2014},
+  type     = {mathesis},
+  month    = dec,
+  abstract = {实现了TCP/NC，添加了自适应冗余算法},
+  file     = {:TCP NC 在Linux下的实现及改进.pdf:PDF},
+}
+
+@Article{张三峰2013编码,
+  author  = {张三峰 and 李爽 and 蓝翔 and 胡永东},
+  title   = {编码TCP的建模与性能分析},
+  journal = {通信学报},
+  year    = {2013},
+  number  = {11},
+  pages   = {112-120},
+  file    = {:编码TCP的建模和性能分析.pdf:PDF},
+}
+
+@Masterthesis{李永超2015基于网络编码,
+  author   = {李永超},
+  title    = {基于网络编码TCP协议的网络加速系统的设计与实现},
+  year     = {2015},
+  abstract = {文章也讲如何在Linux实现，但不是内核模块，而是直接把代码写到内核中；没有改进},
+  file     = {:基于网络编码TCP协议的网络加速系统的设计与实现_李永超.pdf:PDF},
+  school   = {北京邮电大学},
+}
+
+@Masterthesis{宋蒙2015基于网络编码的,
+  author   = {宋蒙},
+  title    = {基于网络编码的TCP协议原型设计与实现},
+  year     = {2015},
+  abstract = {仅仅实现了tcpnc，改进了编码头部，减小了开销},
+  file     = {:基于网络编码的TCP协议原型设计与实现_宋蒙.pdf:PDF},
+  school   = {北京邮电大学},
+}
+
+@Masterthesis{翟丰泰2015基于网络编码的,
+  author   = {翟丰泰},
+  title    = {基于网络编码的TCP协议(NCTCP)设计与研究},
+  year     = {2015},
+  abstract = {没有改进，仅仅是实现，而且用的是batch coding},
+  file     = {:基于网络编码的TCP协议_NCTCP_设计与研究_翟丰泰.pdf:PDF},
+  school   = {西安电子科技大学},
+}
+
+@Masterthesis{穆甜2015面向无线网络的网络编码,
+  author   = {穆甜},
+  title    = {面向无线网络的网络编码TCP仿真与关键技术研究},
+  year     = {2015},
+  abstract = {增加了重传机制和自适应冗余度，两者结合},
+  file     = {:面向无线网络的网络编码TCP仿真与关键技术研究_穆甜.pdf:PDF},
+  school   = {北京邮电大学},
+}
+
+@Masterthesis{张鸿云2013基于网络编码的新型无线传输协议研究与实现,
+  author   = {张鸿云},
+  title    = {基于网络编码的新型无线传输协议研究与实现},
+  year     = {2013},
+  abstract = {感觉都做完了，自适应，重传，。。。。},
+  file     = {:基于网络编码的新型无线传输协议研究与实现.pdf:PDF},
+  school   = {国防科学技术大学},
+}
+
+@Article{chen2011effective,
+  author   = {Chen, Jing and Liu, Lixiang and Hu, Xiaohui and Tan, Wei},
+  title    = {Effective retransmission in network coding for TCP},
+  journal  = {International Journal of Computers Communications \& Control},
+  year     = {2011},
+  volume   = {6},
+  number   = {1},
+  pages    = {53--62},
+  file     = {:Effective Retransmission in Network Coding for TCP.pdf:PDF},
+  keywords = {rank5},
+}
+
+@InProceedings{7374970,
+  author    = {Nguyen Viet Ha and K. Kumazoe and M. Tsuru},
+  title     = {TCP network coding with forward retransmission},
+  booktitle = {2015 IEEE Asia Pacific Conference on Wireless and Mobile (APWiMob)},
+  year      = {2015},
+  pages     = {136-141},
+  month     = {Aug},
+  abstract  = {The performance of the transmission control protocol (TCP) with loss-based congestion control is considerably degraded in lossy networks (e.g., wireless networks). Implementing a network coding (NC) with TCP (TCP/NC) helps prevent this performance degradation by introducing lost packet recovery capability without retransmission at a sink by sending redundant combination packets encoded at the source. TCP/NC can recover random lost packets. However, TCP/NC is less effective when burst packet losses occur because it requires packet retransmission and the retransmission mechanism of the standard TCP/NC entirely relies on the TCP layer. To improve the goodput of a system, we propose a new mechanism in the NC layer called forward retransmission that can retransmit more than one lost packet simultaneously and efficiently. We simulated the proposed mechanism using Network Simulator 3. The results demonstrate that the proposed scheme improves the goodput of a system compared with the standard TCP/NC and TCP NewReno in a burst loss channel.},
+  doi       = {10.1109/APWiMob.2015.7374970},
+  file      = {:TCP Network Coding with Forward Retransmission.pdf:PDF},
+  keywords  = {network coding;transport protocols;TCP NewReno;burst loss channel;forward retransmission;loss-based congestion control;lossy networks;lost packet recovery capability;network coding;network simulator 3;packet retransmission;standard TCP-NC;transmission control protocol;wireless networks;Encoding;Network coding;Packet loss;Protocols;Standards;Wireless communication, rank5},
+}
+
+@Article{fragouli2006network,
+  author    = {Fragouli, Christina and Le Boudec, Jean-Yves and Widmer, J{\"o}rg},
+  title     = {Network coding: an instant primer},
+  journal   = {ACM SIGCOMM Computer Communication Review},
+  year      = {2006},
+  volume    = {36},
+  number    = {1},
+  pages     = {63--68},
+  file      = {:Network Coding An Instant Primer.pdf:PDF},
+  publisher = {ACM},
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}

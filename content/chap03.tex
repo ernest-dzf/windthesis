@@ -317,7 +317,7 @@ NC层维护了一个编码缓存，用于存放从TCP层下来的数据包。每
 \end{figure}
 %%%%%%%%%%%%%%%%%%%%%%
 \par
-编码过程比较简单，算法\ref{algo3}展示了如何对处于编码缓存中的数据包进行编码。
+编码过程比较简单，算法\ref{algo3}展示了如何对处于编码缓存中的数据包进行编码。当选择的数域足够大时，产生线性相关的编码包的概率可以忽略\textsuperscript{\cite{fragouli2006network}}，本文选择在$GF\left(2^8\right)$上进行各种代数运算。
 \renewcommand{\algorithmcfname}{算法}
 \begin{algorithm}
 	\caption{对数据包进行编码} 
