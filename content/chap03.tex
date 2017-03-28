@@ -2,7 +2,7 @@
 %                西南交通大学研究生学位论文：第三章内容
 %---------------------------------------------------------------------------------
 \chapter{TCP/NC协议实现}
-本章主要讲TCP/NC的具体实现，在lossy信道下测试TCP/NC的性能，并与标准的TCP-vegas进行分析对比。
+本章主要讲TCP/NC的具体实现，在lossy信道下测试TCP/NC的性能，并与标准的TCP-Reno进行分析对比。
 \section{数据包编码}
 在阐述数据包编码之前，先简单介绍近世代数的相关概念。
 \subsection{有限域与扩域}
@@ -557,6 +557,7 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	\caption{测试拓扑}
 	\label{TUOPU_EPS}
 \end{figure}
+由于NC层掩盖了丢包，而TCP-Reno的拥塞控制策略是基于丢包的，因此文献\cite{Sundararajan2009}没有采用TCP-Reno版本，而使用了TCP-Vegas。TCP-Vegas采用基于RTT的估计来进行拥塞控制，利用TCP-Vegas做为TCP/NC的上层TCP版本可以兼顾多连接的平衡性。但是我们也看到，TCP/NC的随机丢包在上层看来是RTT的增大\textsuperscript{\cite{Sundararajan2009}}（ 图\ref{CODINGACK_EPS}中的RTT2），如果采用TCP-Vegas的话，就会让TCP-Vegas认为链路容量减小，降低发送速度。本文不考虑多条TCP连接传输的平衡性，因此采用TCP-Reno作为TCP/NC的上层TCP协议。
 测试环境参数如表\ref{tab:CESHI}。
 \begin{table}[htp]
 	\centering
@@ -572,7 +573,7 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 		以太网卡 	&10M/100M\tabularnewline
 		操作系统 &Debian\tabularnewline
 		内核版本 &Linux 3.18\tabularnewline
-		TCP协议版本 &TCP-vegas\tabularnewline
+		TCP协议版本 &TCP-Reno\tabularnewline
 		测试软件 &iperf\tabularnewline
 		\bottomrule
 	\end{tabular}
