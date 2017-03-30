@@ -2,7 +2,7 @@
 %                西南交通大学研究生学位论文：第四章内容
 %---------------------------------------------------------------------------------
 \chapter{TCP/NC的改进及真实环境测试}
-本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，并加以实现，以验证相关性能。提出了前向重传机制以应对一个RTO内的突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延。
+本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，实现增强TCP/NC协议，即E-TCP/NC，并验证相关性能。提出了前向重传机制以应对一个RTO内的突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延；设计补偿重传机制以降低解码端解码矩阵维度和减小解码时延。
 \section{前向重传机制}
 \subsection{TCP/NC的突发丢包问题}
 通过冗余编码，TCP/NC可以很好地应对随机丢包网络的丢包。但当突发丢包发生时，TCP/NC表现就不好了。当突发丢包产生时，一般会要求重传，而TCP/NC的报文重传任务完全依赖TCP层。为了提高TCP/NC在突发丢包网络中的性能，本文提出了一种前向重传机制，能够同时高效地重传多个报文。
@@ -32,7 +32,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 	\caption{新NC头部设计}
 	\label{NEWHEADER_EPS}
 \end{figure}
-\subsection{定位丢包}
+\subsection{定位丢包}\label{DWDB}
 为了在NC层重传未被看到的报文，首先需要确定丢了哪些报文。
 \par
 源端保存了每个编码包的原始数据包信息，即这个编码包是由哪几个原始数据包组成的，如图\ref{FR_EPS}中的$C\left[9\right]$由$p_7$和$p_8$组成。当发送端收到接收端回复的ACK报文时，有如下几种情形。
@@ -89,16 +89,20 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 	R=\dfrac{1}{1-\rho}
 \end{equation}
 因此需要知道当前链路的丢包率。可以由Pid和Pid-reply字段计算得到。如图\ref{DIUBAO_EPS}中展示，发送端提取接收到的ACK中的Pid-reply字段即可了解Pid=103的报文丢失了，进而计算在Pid=100到Pid=104时段内的丢包率$\rho=25\%$。需要注意如下几点：
-\begin{itemize}[leftmargin=.5in]
-	\item 对于每个编码包包都会回复ACK
-\end{itemize}
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=3in]{figures/diubao.eps}
+	\includegraphics[width=2in]{figures/diubao.eps}
 	\caption{计算丢包率示例}
 	\label{DIUBAO_EPS}
 \end{figure}
-\section{反馈重传算法}
+\begin{itemize}[leftmargin=.5in]
+	\item 对于收到的每个编码包，接收端都会回复ACK，这会浪费一些带宽；
+	\item 考虑到ACK报文丢失问题，我们计算得到的丢包率可能比实际情况大一些，但这影响不大；
+	\item 接收端对于冗余包也需要回复ACK，并对其NC头部的R-flag置位，通知发送端的NC层不要将此ACK上传给TCP层
+\end{itemize}
+同时如第\ref{DWDB}小节所述，我们可以通过Pid-reply和ACK确认号来获知接收端的解码矩阵信息。换句话说，可以大概了解接收端的解码矩阵还差多少个编码包才可以变为可解状态。
+
+\section{补偿重传算法}
 \section{真实网络环境测试}
 \subsection{无人机lossy信道环境搭建}
 \subsection{测试结果}
