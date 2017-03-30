@@ -2,34 +2,83 @@
 %                西南交通大学研究生学位论文：第四章内容
 %---------------------------------------------------------------------------------
 \chapter{TCP/NC的改进及真实环境测试}
-本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，并加以实现，以验证相关性能。提出了前向重传机制以应对突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延。
+本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，并加以实现，以验证相关性能。提出了前向重传机制以应对一个RTO内的突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延。
 \section{前向重传机制}
 \subsection{TCP/NC的突发丢包问题}
 通过冗余编码，TCP/NC可以很好地应对随机丢包网络的丢包。但当突发丢包发生时，TCP/NC表现就不好了。当突发丢包产生时，一般会要求重传，而TCP/NC的报文重传任务完全依赖TCP层。为了提高TCP/NC在突发丢包网络中的性能，本文提出了一种前向重传机制，能够同时高效地重传多个报文。
 \par
-通过增大TCP/NC的编码窗口可以提高TCP/NC应对突发丢包的能力，但是带来的后果是解码端运算复杂度的急剧增加，进而增大解码时延。在未发生超时重传时，TCP层单个、按序地重传各个丢失的报文，因此TCP/NC会消耗很长一段时间来重传丢失的报文。图\ref{FR_EPS}展示了在丢了4个报文的情况下，TCP/NC是如何重传丢失的报文的。图\ref{FR_EPS}例子中设定的编码窗口值为2，冗余度为$\frac{1}{7}$，也就是说每7个编码包，多发一个冗余包。可以看到源端对$p_2$，$p_3$，$p_4$的重传总共耗费了3个RTT，导致目的端的NC层虽然在收到$C\left[8\right]$时就开始可以解码$p_5$后面的报文，但由于乱序，无法将它们上交给上层的TCP。
+通过增大TCP/NC的编码窗口可以提高TCP/NC应对突发丢包的能力，但是带来的后果是解码端运算复杂度的急剧增加，进而增大解码时延。在未发生超时重传时，TCP层单个、按序地在多个RTT内重传各个丢失的报文，因此TCP/NC会消耗很长一段时间来重传丢失的报文。图\ref{FR_EPS}展示了在丢了4个报文的情况下，TCP/NC是如何重传丢失的报文的。图\ref{FR_EPS}例子中设定的编码窗口值为2，冗余度为$\frac{1}{7}$，也就是说每7个编码包，多发一个冗余包。可以看到源端对$p_2$，$p_3$，$p_4$的重传总共耗费了3个RTT，导致目的端的NC层虽然在收到$C\left[8\right]$时就开始可以解码$p_5$后面的报文，但由于乱序，无法将它们上交给上层的TCP。
 \par
-在TCP-Reno中，对于重复ACK采取的是快速重传的方法。以图\ref{FR_EPS}为例，源端的NC层在收到3个对$p_2$的ACK之后，直接将其交付给上层TCP。上层TCP收到3个重复的对$p_2$的ACK，认为报文$p_2$丢失了，采取快速重传，只重传$p_2$，然后继续接着$p_{10}$发送$p_{11}$。接收端在收到$p_2$的重传报文$C\left[11\right]$后，又陆续回给源端多个重复ACK，表示$p_3$丢失。源端TCP又启动快速重传，重传报文$p_3$。后面对报文$p_4$的重传和$p_1$，$p_2$的情况一样。当编码窗口的值更大，RTT比较大时，这种情况产生的影响更大。
+在TCP-Reno中，对于重复ACK采取的是快速重传的方法。以图\ref{FR_EPS}为例，源端的NC层在收到3个对$p_2$的ACK之后，直接将其交付给上层TCP。上层TCP收到3个重复的对$p_2$的ACK，认为报文$p_2$丢失了，采取快速重传，只重传$p_2$，然后进入拥塞避免阶段，继续接着$p_{10}$发送$p_{11}$。接收端在收到$p_2$的重传报文$C\left[11\right]$后，又陆续回给源端多个重复ACK，表示$p_3$丢失。源端TCP又启动快速重传，重传报文$p_3$。后面对报文$p_4$的重传和$p_1$，$p_2$的情况一样。当编码窗口的值更大，RTT比较大时，这种情况产生的影响更大。
 \par
-TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的处理策略，因此对突发丢包不是很友好。NC层的引入让这一策略的劣势更为凸显。当NC层出现重复ACK时，意味着链路中出现的丢包就绝不仅仅是单个报文的丢失，这是由于NC层的“seen”机制导致的。直觉上，由于NC层缓存有未被确认的数据包，我们可以在NC层重传那些未被看到的报文。
+TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的处理策略，因此对突发丢包不是很友好。NC层的引入让这一策略的劣势更为凸显。当NC层出现重复ACK时，意味着链路中出现的丢包就绝不仅仅是单个报文的丢失，这是由于NC层的“seen”机制导致的。直觉上，由于NC层缓存有未被确认的数据包，我们可以在NC层重传那些未被看到的报文。当NC层收到第一个从TCP层下来的重传报文\emph{pkt}后，NC层不仅重传\emph{pkt}，而是会在一个RTT内顺便将所有未看到的报文都重传。如此，可以让上层TCP认为仅仅就丢了一个包。如图\ref{NEWFR_EPS}所示，NC层收到上层TCP的重传报文$p_2$后，在一个RTT内重传了未看到的报文$p_2$，$p_3$和$p_4$。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=4in]{figures/fr.eps}
 	\caption{原有TCP/NC的重传机制}
 	\label{FR_EPS}
 \end{figure}
-\subsection{定位丢包}
-为了重传丢失的报文，首先需要确定丢了哪些报文。我们重新设计了NC头部，如图\ref{NEWHEADER_EPS}所示，增加了Pid和Pid-reply两个域，各自两个字节。其中Pid表示NC层发出的报文编号，以报文为计数单位，而非字节。NC层发出的每个线性组合报文有独一无二的Pid（ 回环问题另做考虑 ），接收端在收到编号为Pid的线性组合报文后，在回复的ACK报文中，Pid-reply域就填上Pid，表示当前这个ACK是由编号为Pid的线性组合包激发的。
-\par
-在原有TCP/NC头部设计，即图\ref{CODINGHEADER_EPS}，
+\begin{figure}
+	\centering
+	\includegraphics[width=4in]{figures/newfr.eps}
+	\caption{前向重传机制}
+	\label{NEWFR_EPS}
+\end{figure}
+\subsection{新NC头部设计}
+为了支撑前向重传机制，本文设计了新的NC头部，如图\ref{NEWHEADER_EPS}。原有TCP/NC头部设计 （ 图\ref{CODINGHEADER_EPS} ）中的Res字段，有6个比特可供使用，对应图\ref{NEWHEADER_EPS}中的$b_1 \sim b_6$。此六个比特与标准TCP中的保留字段对应。在第\ref{ztlc}小节中，我们讲到需要区分NC报文和普通TCP报文，可以利用$b_1$标识这个是TCP报文还是NC报文。利用$b_2$表示R-flag，表示当前这个报文是否要被上交给TCP层；利用$b_3$、$b_4$和$b_5$一起表示当前报文的\emph{报文状态}（ 后面会讲到\emph{报文状态}的作用 ）。增加了Pid和Pid-reply两个域，各自两个字节。其中Pid表示NC层发出的报文编号，以报文为计数单位，而非字节。NC层发出的每个线性组合报文有独一无二的Pid（ 回环问题另做考虑 ），接收端在收到编号为Pid的线性组合报文后，在回复的ACK报文中，Pid-reply域就填上Pid，表示当前这个ACK是由编号为Pid的线性组合包激发的。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/newheader.eps}
 	\caption{新NC头部设计}
 	\label{NEWHEADER_EPS}
 \end{figure}
+\subsection{定位丢包}
+为了在NC层重传未被看到的报文，首先需要确定丢了哪些报文。
+\par
+源端保存了每个编码包的原始数据包信息，即这个编码包是由哪几个原始数据包组成的，如图\ref{FR_EPS}中的$C\left[9\right]$由$p_7$和$p_8$组成。当发送端收到接收端回复的ACK报文时，有如下几种情形。
+\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
+	\item 有新的数据被确认且ACK报文中R-flag（ 后面会解释R-flag含义 ）未置位，那么将其交给上层TCP。
+	\item 有新的数据被确认而ACK报文中R-flag置位，此ACK需要被抑制，不会被交付给上层TCP，如图\ref{NEWFR_EPS}中对$C\left[11\right]$和$C\left[12\right]$的ACK，但会更新NC层中未被看到的报文，从未被看到的报文列表中移除本次新确认的数据。
+	\item 本次ACK并没有确认新的数据，提取其中的\emph{Pid-reply}域，然后罗列Pid值为Pid-reply的编码包的所有原始数据包$p_i \sim p_j(i \le j)$。如果目前在发送端未被确认的数据包中最小序号为$seq_1$，$p_i$数据包的起始序号是$seq_2$，那么我们可知接收端那边未看到的报文序号是在$seq_1 \sim \left(seq_2 - 1\right)$之间。由于发送端可能会收到接收端多个这样的ACK报文，如图\ref{NEWFR_EPS}中对$C\left[6\right]$，$C\left[7\right]$和$C\left[8\right]$的确认ACK报文，未看到的报文区间会被更新，但更新的方式只能是区间长度变小，也就是说$seq_2-1$只能向着$seq_1$靠拢。以图\ref{NEWFR_EPS}为例，发送端在收到对$C\left[7\right]$的ACK后，未看到的报文区间不会改变，依然是$seq_{p_2} \sim seq_{p_5} - 1$。
+\end{enumerate}
+\par
+从图\ref{NEWFR_EPS}中可以看到，接收端发出的对报文$C\left[11\right]$和$C\left[12\right]$的确认ACK报文被发送端的NC层抑制了，并没有交给上层。发送端的NC层直到收到ACK为$p_{10}$的报文，才将此ACK上交给上层TCP。这样达到了让上层TCP以为仅仅丢了一个包的目的。因此，我们需要在NC头部添加\emph{报文状态}字段。可以告知接收端当前这个报文能否让接收端产生确认所有重传报文的ACK报文。如果可以，那么接收端在回复给发送端的ACK报文中会将R-flag清掉；如果不行，接收端在回复给发送端的ACK报文中会对R-flag置位。这样发送端的NC层就可以根据R-flag状态来决定是否将ACK报文送往上层TCP。表\ref{tab:BWZT}展示的是所有的报文状态信息。
+
+\begin{table}[htp]
+	\centering
+	\caption{报文状态描述}
+	\label{tab:BWZT}
+	\begin{tabular}{l|l}
+		\toprule
+		报文状态（ $b_3b_4b_5$） &描述\tabularnewline
+		\midrule
+		000		& 正常的编码包\tabularnewline
+		001		& 冗余编码包 \tabularnewline
+		010		& 未编码重传报文，但不是最后一个\tabularnewline
+		011 	& 未编码重传报文，且是最后一个\tabularnewline
+		100		& 重传编码报文，但不是最后一个\tabularnewline
+		101		& 重传编码报文，且是最后一个\tabularnewline
+		\bottomrule
+	\end{tabular}
+\end{table}
+\subsection{重传丢包}
+每当NC层收到上层TCP下来的重传报文时，我们的前向重传机制才会启动。发送端的NC层维护了一个链表\emph{re\_list}，保存着接收端那边未看到的报文；\emph{re\_list}通过接收端那边回的ACK报文来更新。是否启动前向重传取决于\emph{re\_list}是否为空。当NC层完成前向重传后，\emph{re\_list}会被清空。
+\par
+值得注意的是，在重传过程中，对于\emph{re\_list}中的报文，我们发送的是原始数据包，例如图\ref{NEWFR_EPS}中的$p_2$、$p_3$和$p_4$。这是为了加快接收端的解码进程。对照表\ref{tab:BWZT}，图\ref{NEWFR_EPS}中报文$p_2$和$p_3$的\emph{报文状态}域上填写的都是010；报文$p_4$的\emph{报文状态}域上填写的是011。这是由于$p_4$是这个非编码重传序列的最后一个重传报文。接收端在收到重传的$p_2$、$p_3$和$p_4$后会产生3个ACK报文，通过检查$p_2$、$p_3$和$p_4$的\emph{报文状态}域，接收端知道$p_4$才是这个非编码重传序列的最后一个重传报文。因此，对于$p_2$、$p_3$的ACK报文，接收端会对其R-flag域置位，让发送端的NC层不将$p_2$和$p_3$的ACK报文上传给TCP层；而对于$p_4$的ACK报文，接收端会清掉R-flag域，让发送端的NC层将$p_4$的ACK报文上传给TCP层。
+\par
+考虑一下重传报文丢失的情况。
+\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
+	\item 如果重传序列的第一个报文或者中间报文丢失，那么依然会触发重复ACK，情形退回到前向重传机制开始之前的情况。
+	\item 如果最后一个重传报文，如$p_4$丢失，那么发送端只会收到R-flag置位的ACK报文，如$p_2$和$p_3$的ACK报文；由于R-flag置位，发送端的NC层不会将这些ACK报文上交给TCP层，但是会更新NC层的编码缓存；一段时间后上层TCP会重传刚刚才重传过的报文序列，如$p_2$、$p_3$和$p_4$；NC层发现$p_2$和$p_3$被接收端确认了，会立马创建一个ACK报文，回给上层TCP；NC层发现\emph{re\_list}为空，$p_4$不在\emph{re\_list}中，而$p_4$在编码缓存中，因此会将$p_4$加入到\emph{re\_list}，重传$p_4$，并清空\emph{re\_list}。
+\end{enumerate}
+\par
+考虑一下超时重传的情况。NC层通过检查TCP层下来的报文是否在编码缓存中来确定这个报文是否是重传包。不管是超时重传报文还是快速重传报文，都首先检查该报文是否在\emph{re\_list}中，如果不在就加入到\emph{re\_list}，然后重传\emph{re\_list}的所有报文。
+\subsection{编码重传包}
+考虑到重传序列的最后一个重传包丢失造成的性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。
 \section{改进冗余包发送时机}
+文献\cite{Sundararajan2009}中冗余包
 \section{自适应冗余度算法}
+\section{反馈重传算法}
 \section{真实网络环境测试}
 \subsection{无人机lossy信道环境搭建}
 \subsection{测试结果}
