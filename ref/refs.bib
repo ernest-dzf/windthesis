@@ -37,6 +37,7 @@
   abstract  = {TCP was primarily designed for wired networks. In wired
 networks random bit error rate (BER) is negligible, and con-},
   file      = {:tcp in wireless environments problems and solutions.pdf:PDF},
+  groups    = {传统TCP},
 }
 
 @Article{Xia2008,
@@ -75,6 +76,7 @@ networks random bit error rate (BER) is negligible, and con-},
   number  = {1},
   pages   = {1-14},
   file    = {:analysis of the increase and decrease algorithms for congestion avoidance in computer networks.pdf:PDF},
+  groups  = {传统TCP},
 }
 
 @Article{ontcp,
@@ -89,6 +91,7 @@ networks random bit error rate (BER) is negligible, and con-},
   issn     = {0163-6804},
   doi      = {10.1109/35.815451},
   file     = {:On TCP Performance in a heterogeneous network.pdf:PDF},
+  groups   = {传统TCP},
   keywords = {Internet;delays;performance evaluation;telecommunication traffic;transport protocols;Internet traffic;TCP performance;bandwidth asymmetry;bandwidth-delay product;connection path;heterogeneous Internet;heterogeneous network;long end-to-end delay;noncongestion losses;survey;transmission errors;transmission media;Bandwidth;IP networks;Intelligent networks;Optical fiber networks;Protocols;Satellites;TCPIP;Telecommunication traffic;Web and internet services;Wireless networks},
 }
 
@@ -104,6 +107,7 @@ networks random bit error rate (BER) is negligible, and con-},
   issn     = {1063-6692},
   doi      = {10.1109/90.650137},
   file     = {:a comparison of mechanisms for improving tcp performance over wireless links.pdf:PDF},
+  groups   = {传统TCP},
   keywords = {cellular radio, computer network reliability, packet radio networks, performance evaluation, telecommunication congestion control, transport protocols, wide area networks, wireless LAN, LAN, TCP performance improvement, WAN, base station, bit errors, cellular topology, congestion avoidance algorithm, congestion control algorithm, end-to-end protocols, experiments, goodput, handoffs, link-layer protocols, local reliability, loss recovery, losses, lossy links, lossy systems, packet losses, reliable transport protocols, selective acknowledgments, split-connection protocols, throughput, wireless links, wireless systems, Base stations, Computer network reliability, Computer science, Control systems, Degradation, Delay estimation, Performance loss, Throughput, Transport protocols, Wireless networks},
 }
 
@@ -254,6 +258,7 @@ networks random bit error rate (BER) is negligible, and con-},
   number    = {8},
   pages     = {1465--1480},
   file      = {:tcp vegas.pdf:PDF},
+  groups    = {传统TCP},
   publisher = {IEEE},
 }
 
@@ -554,21 +559,24 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
 就是会让rtt增大啊？这时候tcp-vegas不就会认为出现了拥塞了？？？},
   doi       = {10.1109/PCCC.2009.5403816},
   file      = {:towards zero loss for tcp in wireless networks.pdf:PDF},
+  groups    = {重传},
   issn      = {1097-2641},
   keywords  = {network coding;packet radio networks;telecommunication congestion control;transport protocols;TCP;congestion control algorithm;network coding retransmission scheme;packets decoding;practical system;wireless networks;Decoding;Delay effects;Information systems;Laboratories;Network coding;Propagation losses;Robustness;Throughput;Transport protocols;Wireless networks;TCP;decoding delay;network coding;packet loss, rank5},
 }
 
 @Article{chan2013adaptive,
-  author   = {Chan, Yi-Cheng and Hu, Ya-Yi},
-  title    = {Adaptive network coding scheme for TCP over wireless sensor networks},
-  journal  = {International Journal of Computers Communications \& Control},
-  year     = {2013},
-  volume   = {8},
-  number   = {6},
-  pages    = {800--811},
-  abstract = {文章设计了一个新的冗余度算法，并根据冗余度计算编码窗口的值，动态改变编码窗口大小},
-  file     = {:adaptive network coding scheme for tcp over wireless sensor.pdf:PDF},
-  keywords = {rank5},
+  author        = {Chan, Yi-Cheng and Hu, Ya-Yi},
+  title         = {Adaptive network coding scheme for TCP over wireless sensor networks},
+  journal       = {International Journal of Computers Communications \& Control},
+  year          = {2013},
+  volume        = {8},
+  number        = {6},
+  pages         = {800--811},
+  __markedentry = {[victor:]},
+  abstract      = {文章设计了一个新的冗余度算法，并根据冗余度计算编码窗口的值，动态改变编码窗口大小},
+  file          = {:adaptive network coding scheme for tcp over wireless sensor.pdf:PDF},
+  groups        = {自适应冗余算法},
+  keywords      = {rank5},
 }
 
 @InProceedings{van2013adaptive,
@@ -579,6 +587,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   pages        = {1510--1515},
   organization = {IEEE},
   file         = {:adaptive_redundancy_control_with_network_coding_in_multihop_wireless_networks.pdf:PDF},
+  groups       = {自适应冗余算法},
   keywords     = {rank5},
 }
 
@@ -603,6 +612,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   year      = {2011},
   pages     = {20--25},
   file      = {:self-adaptive tcp protocol combined with network coding scheme.pdf:PDF},
+  groups    = {自适应冗余算法},
   keywords  = {rank5},
 }
 
@@ -642,6 +652,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   abstract  = {To address the inability of the standard TCP protocol to distinguish between losses due to congestion and random packet losses on the noisy channel, this paper proposes an algorithm to dynamically adjust the redundancy factor R of the TPC/NC protocol proposed by Sundararajan et al. by adding some additional functionalities to the original network coding layer. We define a loss differentiation scheme to adjust R, based on the Vegas Loss Predictor and the collective feedback information of ACKs and duplicates ACKs, which are both indicators of the network condition. In that way the source adjusts R based on the network conditions, avoiding unnecessary TCP rate reduction linked to packet losses due to transmission impairments and preventing the network from entering in a congestion state. The TPC/NC implementation with our adaptive scheme is full-duplex, and can manage multiple TCP connections simultaneously. Simulation results over realistic network scenarios using OPNET Modeler show that our adaptive scheme in conjunction with the standard TCP/NC produces better TCP-throughputs than the standard TCP/NC, TCP-Reno, TPC New Reno, and TCP Reno with SACKS.},
   doi       = {10.1109/NETCOD.2012.6261883},
   file      = {:redundancy adaptation scheme for network coding with tcp.pdf:PDF},
+  groups    = {自适应冗余算法},
   issn      = {2374-9660},
   keywords  = {network coding;telecommunication channels;transport protocols;ACK;OPNET modeler;SACKS;TCP Reno;TCP connections;TCP-throughputs;TPC/NC implementation;TPC/NC protocol;Vegas loss predictor;congestion state;full-duplex;network coding;noisy channel;random packet losses;redundancy adaptation scheme;standard TCP protocol;Encoding;IP networks;Network coding;Protocols;Receivers;Redundancy;Throughput, rank5},
 }
@@ -666,6 +677,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   volume    = {2},
   pages     = {e89},
   file      = {:tcp_adaptation_with_network_coding_and_opportunistic_data_forwarding_in_multihop_wireless_networks.pdf:PDF},
+  groups    = {自适应冗余算法},
   publisher = {PeerJ Inc.},
 }
 
@@ -691,6 +703,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   pages        = {586--599},
   organization = {Springer},
   file         = {:loss differentiation schemes for tcp over wireless networks.pdf:PDF},
+  groups       = {传统TCP},
 }
 
 @Article{xia2005one,
@@ -784,7 +797,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   author   = {穆甜},
   title    = {面向无线网络的网络编码TCP仿真与关键技术研究},
   year     = {2015},
-  abstract = {增加了重传机制和自适应冗余度，两者结合},
+  abstract = {增加了重传机制和自适应冗余度，两者结合，感觉没啥可做的了},
   file     = {:面向无线网络的网络编码TCP仿真与关键技术研究_穆甜.pdf:PDF},
   school   = {北京邮电大学},
 }
@@ -795,6 +808,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   year     = {2013},
   abstract = {感觉都做完了，自适应，重传，。。。。},
   file     = {:基于网络编码的新型无线传输协议研究与实现.pdf:PDF},
+  keywords = {rank5},
   school   = {国防科学技术大学},
 }
 
@@ -807,6 +821,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   number   = {1},
   pages    = {53--62},
   file     = {:Effective Retransmission in Network Coding for TCP.pdf:PDF},
+  groups   = {重传},
   keywords = {rank5},
 }
 
@@ -820,6 +835,7 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   abstract  = {The performance of the transmission control protocol (TCP) with loss-based congestion control is considerably degraded in lossy networks (e.g., wireless networks). Implementing a network coding (NC) with TCP (TCP/NC) helps prevent this performance degradation by introducing lost packet recovery capability without retransmission at a sink by sending redundant combination packets encoded at the source. TCP/NC can recover random lost packets. However, TCP/NC is less effective when burst packet losses occur because it requires packet retransmission and the retransmission mechanism of the standard TCP/NC entirely relies on the TCP layer. To improve the goodput of a system, we propose a new mechanism in the NC layer called forward retransmission that can retransmit more than one lost packet simultaneously and efficiently. We simulated the proposed mechanism using Network Simulator 3. The results demonstrate that the proposed scheme improves the goodput of a system compared with the standard TCP/NC and TCP NewReno in a burst loss channel.},
   doi       = {10.1109/APWiMob.2015.7374970},
   file      = {:TCP Network Coding with Forward Retransmission.pdf:PDF},
+  groups    = {重传},
   keywords  = {network coding;transport protocols;TCP NewReno;burst loss channel;forward retransmission;loss-based congestion control;lossy networks;lost packet recovery capability;network coding;network simulator 3;packet retransmission;standard TCP-NC;transmission control protocol;wireless networks;Encoding;Network coding;Packet loss;Protocols;Standards;Wireless communication, rank5},
 }
 
@@ -856,7 +872,47 @@ TCP-Vegas使用RTT估计拥塞，但tcp/nc掩盖丢包的时候
   year      = {2017},
   pages     = {2016EBP3101},
   file      = {:TCP Network Coding with Enhanced Retransmission for Heavy and Bursty Loss.pdf:PDF},
+  groups    = {重传},
   publisher = {The Institute of Electronics, Information and Communication Engineers},
 }
 
+@Article{hasegawa2000fairness,
+  author = {Hasegawa, Kenji Kurata Go and Murata, Masayuki},
+  title  = {Fairness Comparisons between TCP Reno and TCP Vegas for Future Deployment of TCP Vegas},
+  year   = {2000},
+  file   = {:Fairness Comparisons between TCP Reno and TCP Vegas for Future Deployment of TCP Vegas.pdf:PDF},
+  groups = {传统TCP},
+}
+
+@InProceedings{7695220,
+  author    = {N. V. Ha and K. Kumazoe and M. Tsuru},
+  title     = {Making TCP/NC Adjustable to Time Varying Loss Rates},
+  booktitle = {2016 International Conference on Intelligent Networking and Collaborative Systems (INCoS)},
+  year      = {2016},
+  pages     = {457-462},
+  month     = {Sept},
+  abstract  = {Applying network coding (NC) into the protocol stack has been studied with much attention in order to improve Transmission Control Protocol (TCP) goodput in inherently lossy networks (e.g., wireless networks in unstable environments). TCP with network coding (TCP/NC) is expected to recover the lost packets without retransmission at the sink by sending the redundant combination packets which are encoded at the source. While TCP/NC can work in theory, two problems have not been well solved especially in time-varying packet loss conditions. One is how to decide the good parameters (e.g., redundancy factor R) based on a recent network condition estimated from continuous observation. The other one is how to dynamically adapt an ongoing NC-layer process based on the decided parameters. Therefore, in this paper, we propose a functionally improved TCP/NC variant called the TCP/NC with loss rate estimation (TCP/NCwLRE) which can automatically adjust the NC-layer behaviors to adapt to time-varying channels. We implemented and validated our proposal in Network Simulator 3. The results show that the TCP/NCwLRE improves the TCP goodputs in time-varying non-correlated random loss channels.},
+  doi       = {10.1109/INCoS.2016.77},
+  file      = {:Making TCPNC adjustable to time varying loss rates.pdf:PDF},
+  groups    = {自适应冗余算法},
+  keywords  = {channel coding;network coding;transport protocols;NC-layer behaviors;Network Simulator 3;TCP/NC adjustable;TCP/NCwLRE;network coding;protocol stack;time varying loss rates;time-varying channels;time-varying noncorrelated random loss channels;transmission control protocol;Collaboration;Throughput;Network coding;TCP;adjustable;estimate;time-varying channel},
+}
+
+@Book{Wu2013Self,
+  title  = {Self-adaptive Retransmission for Network Coding with TCP},
+  year   = {2013},
+  author = {Wu, Chunqing and Zhang, Hongyun and Yu, Wanrong and Feng, Zhenqian and Hu, Xiaofeng},
+  file   = {:Self-adaptive Retransmission for Network Coding With TCP.pdf:PDF},
+  groups = {重传},
+  pages  = {396-407},
+}
+
 @Comment{jabref-meta: databaseType:bibtex;}
+
+@Comment{jabref-meta: groupstree:
+0 AllEntriesGroup:;
+1 ExplicitGroup:自适应冗余算法\;0\;;
+1 ExplicitGroup:重传\;0\;;
+1 ExplicitGroup:调节窗口\;0\;;
+1 ExplicitGroup:传统TCP\;0\;;
+}

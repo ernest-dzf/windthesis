@@ -76,8 +76,28 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 \subsection{编码重传包}
 考虑到重传序列的最后一个重传包丢失造成的性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。
 \section{改进冗余包发送时机}
-文献\cite{Sundararajan2009}中冗余包
+文献\cite{Sundararajan2009}中冗余包分布并非均匀分布。给定一个固定冗余度，其冗余特性并没有体现在每个编码包中。因此本文重新设计了冗余包的发送时机。假定冗余度为\emph{R} （ $R \ge 1$ ），对于从TCP层下来的每个报文，以$R - \left\lfloor R \right\rfloor$的概率发送 $\left\lfloor R+1 \right\rfloor$个编码包；以$1-\left(R-\left\lfloor R \right\rfloor\right)$的概率发送$\left\lfloor R \right\rfloor$个编码包。这样冗余度均匀分布在每个数据包中了。
 \section{自适应冗余度算法}
+文献\cite{Sundararajan2009}中并没有给出冗余因子\emph{R}的设置规则。自觉告诉我们，将\emph{R}设置为一个常量值是不合适的。现实中的网络环境，尤其是无线环境，其丢包率是在变动的。在设置冗余因子时，如果\emph{R}过小，那么冗余信息不足以掩盖链路中的丢包；如果\emph{R}值过大，编码码率就过小，降低网络的有效吞吐率。因此需要找出一种能够根据网络状况自适应调整冗余度的方法，最大化地利用网络带宽。
+\par
+文献\cite{6261883}针对TCP/NC提出了一种自适应冗余算法。作者借鉴TCP-Vegas中的\emph{Vegas loss predictor}\textsuperscript{\cite{martignon2004loss,brakmo1995tcp}}，在NC层实现了一个\emph{loss differentiation scheme}。通过估计当前的网络拥塞状态和收到的重复ACK信息，在让网络不出现拥塞的前提下可以动态调整冗余度。其缺点则是\emph{Vegas loss predictor}在面对TCP-Reno竞争时的无力\textsuperscript{\cite{hasegawa2000fairness}}。
+\par
+文献\cite{song2011self}设计了SANC-TCP，其基本思想是对产生的编码报文进行编号，在ACK的头部添加两个域\emph{loss}和\emph{echo\_pktID}。发送端根据接收到的ACK报文中的\emph{loss}和\emph{echo\_pktID},以及编码窗口的值来动态调整冗余度。其中\emph{loss}表示接收端的解码矩阵中序号最大的原始数据包编号和“seen packets”编号之间的差值；\emph{echo\_pktID}表示哪个报文激发了本次ACK。其在调整冗余度时不仅考虑了当前网络的丢包率，还将接收端的解码矩阵的状态信息考虑进去。
+\par
+考虑到在设计前向重传机制中引入的Pid和Pid-reply字段，本文依据Pid和Pid-reply设计了一个新的自适应冗余算法。由文献\cite{Sundararajan2011}中可知，冗余度\emph{R}与丢包率密$\rho$密切相关，理想情况下其关系为
+\begin{equation}
+	R=\dfrac{1}{1-\rho}
+\end{equation}
+因此需要知道当前链路的丢包率。可以由Pid和Pid-reply字段计算得到。如图\ref{DIUBAO_EPS}中展示，发送端提取接收到的ACK中的Pid-reply字段即可了解Pid=103的报文丢失了，进而计算在Pid=100到Pid=104时段内的丢包率$\rho=25\%$。需要注意如下几点：
+\begin{itemize}[leftmargin=.5in]
+	\item 对于每个编码包包都会回复ACK
+\end{itemize}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=3in]{figures/diubao.eps}
+	\caption{计算丢包率示例}
+	\label{DIUBAO_EPS}
+\end{figure}
 \section{反馈重传算法}
 \section{真实网络环境测试}
 \subsection{无人机lossy信道环境搭建}
