@@ -2,7 +2,7 @@
 %                西南交通大学研究生学位论文：第四章内容
 %---------------------------------------------------------------------------------
 \chapter{TCP/NC的改进及真实环境测试}
-本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，实现增强TCP/NC协议，即E-TCP/NC，并验证相关性能。提出了前向重传机制以应对一个RTO内的突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延；设计补偿重传机制以降低解码端解码矩阵维度和减小解码时延。
+本章主要对文献\cite{Sundararajan2009}所提的TCP/NC给出几点改进，实现增强TCP/NC协议，即E-TCP/NC，并验证相关性能。提出了前向重传机制以应对一个RTO内的突发丢包；提出了一种新的自适应冗余度算法以应对网络的变化；对冗余包的发送时机给出改进以降低平均解码时延；设计补偿重传机制以降低解码端解码矩阵维度和减小解码时延；改进编码系数的设定以降低首部开销和减低解码复杂度。
 \section{前向重传机制}
 \subsection{TCP/NC的突发丢包问题}
 通过冗余编码，TCP/NC可以很好地应对随机丢包网络的丢包。但当突发丢包发生时，TCP/NC表现就不好了。当突发丢包产生时，一般会要求重传，而TCP/NC的报文重传任务完全依赖TCP层。为了提高TCP/NC在突发丢包网络中的性能，本文提出了一种前向重传机制，能够同时高效地重传多个报文。
@@ -78,7 +78,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 \section{改进冗余包发送时机}
 文献\cite{Sundararajan2009}中冗余包分布并非均匀分布。给定一个固定冗余度，其冗余特性并没有体现在每个编码包中。因此本文重新设计了冗余包的发送时机。假定冗余度为\emph{R} （ $R \ge 1$ ），对于从TCP层下来的每个报文，以$R - \left\lfloor R \right\rfloor$的概率发送 $\left\lfloor R+1 \right\rfloor$个编码包；以$1-\left(R-\left\lfloor R \right\rfloor\right)$的概率发送$\left\lfloor R \right\rfloor$个编码包。这样冗余度均匀分布在每个数据包中了。
 \section{自适应冗余度算法}
-文献\cite{Sundararajan2009}中并没有给出冗余因子\emph{R}的设置规则。自觉告诉我们，将\emph{R}设置为一个常量值是不合适的。现实中的网络环境，尤其是无线环境，其丢包率是在变动的。在设置冗余因子时，如果\emph{R}过小，那么冗余信息不足以掩盖链路中的丢包；如果\emph{R}值过大，编码码率就过小，降低网络的有效吞吐率。因此需要找出一种能够根据网络状况自适应调整冗余度的方法，最大化地利用网络带宽。
+文献\cite{Sundararajan2009}中并没有给出冗余因子\emph{R}的设置规则。直觉告诉我们，将\emph{R}设置为一个常量值是不合适的。现实中的网络环境，尤其是无线环境，其丢包率是在变动的。在设置冗余因子时，如果\emph{R}过小，那么冗余信息不足以掩盖链路中的丢包；如果\emph{R}值过大，编码码率就过小，降低网络的有效吞吐率。因此需要找出一种能够根据网络状况自适应调整冗余度的方法，最大化地利用网络带宽。
 \par
 文献\cite{6261883}针对TCP/NC提出了一种自适应冗余算法。作者借鉴TCP-Vegas中的\emph{Vegas loss predictor}\textsuperscript{\cite{martignon2004loss,brakmo1995tcp}}，在NC层实现了一个\emph{loss differentiation scheme}。通过估计当前的网络拥塞状态和收到的重复ACK信息，在让网络不出现拥塞的前提下可以动态调整冗余度。其缺点则是\emph{Vegas loss predictor}在面对TCP-Reno竞争时的无力\textsuperscript{\cite{hasegawa2000fairness}}。
 \par
@@ -100,9 +100,39 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 	\item 考虑到ACK报文丢失问题，我们计算得到的丢包率可能比实际情况大一些，但这影响不大；
 	\item 接收端对于冗余包也需要回复ACK，并对其NC头部的R-flag置位，通知发送端的NC层不要将此ACK上传给TCP层
 \end{itemize}
-同时如第\ref{DWDB}小节所述，我们可以通过Pid-reply和ACK确认号来获知接收端的解码矩阵信息。换句话说，可以大概了解接收端的解码矩阵还差多少个编码包才可以变为可解状态。
-
+\par
+可以设定更新冗余度的间隔，比如100个包更新一次冗余度。更新方法如下
+\begin{equation}\label{eq:hdpj}
+R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
+\end{equation}
+其中$R_{old}$表示最近一次计算得到的冗余度。式\ref{eq:hdpj}使用了滑动平均方法，将先前所计算的冗余度考虑进去。根据网络状况可以调整\emph{a}和\emph{b}的值。如果网络状况变化频繁，那么\emph{a}的值设置的比\emph{b}大一些；如果网络状况稳定，那么\emph{a}的值可以设的比\emph{b}小。
 \section{补偿重传算法}
+如第\ref{DWDB}小节所述，我们还可以通过Pid-reply和ACK确认号间接获知接收端的解码矩阵信息。换句话说，可以大概了解接收端的解码矩阵还差多少个编码包才可以变为可解状态，这与文献\cite{song2011self}中的思想是一致的。补偿重传的思想最初由文献\cite{5403816}提出，作者在ACK头部添加\emph{loss}和\emph{Pid-reply}字段，\emph{loss}表示接收端解码矩阵变为可解状态还缺失的编码包个数，\emph{Pid-reply}表示激发本次ACK报文的编码包的编号。补偿重传可以显著地降低解码时延和解码矩阵的维度。
+\par
+本文借鉴文献\cite{5403816}的方法，与之不同的是发送端通过\emph{Pid-reply}字段间接了解接收端的解码矩阵信息，无需额外添加\emph{loss}字段，复用了\emph{Pid-reply}字段。如第\ref{DWDB}小节说讲，当发送端收到接收端回复的ACK报文时，如果有新的数据被确认且ACK报文中R-flag未置位，此时发送端可以按如下步骤进行：
+\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
+	\item 提取\emph{Pid-reply}域，罗列Pid值为\emph{Pid-reply}的编码包的所有原始数据包$p_i \sim p_j\left(i \le j\right)$
+	\item 如果ACK报文的确认序号$ACK=p_k$，那么可知接收端解码矩阵在收到编号\emph{Pid=Pid-reply}的编码报文时，缺失$j-k+1$个编码包才可以变为可解状态。
+\end{enumerate}
+\section{固定编码系数}
+原有TCP/NC协议的原始数据包系数是在某个有限域上的随机数。选定有线域越大，解码成功率越大。根据文献\cite{4015738}所述，当选定的有限域为$GF\left(2^8\right)$时，解码成功率超过$99.6\%$。但有限域越大，有限域上的运算要么耗时长，要么查表消耗内存过大。选定$GF\left(2^8\right)$是个折中的选择。在$GF\left(2^8\right)$下，每个系数是一个字节，当编码窗口比较大时，NC头部的系数是一大笔开销。而且，解码时的运算复杂度也比较高，解码时需要按字节进行操作，而一个数据包的最大长度为1400字节，如果编码窗口固定为\emph{W}的话，那么一次解码就需要$1400*W^2$次循环，运算复杂度比较高。
+\par
+本文设计固定系数编码的方法。假定正常编码包为$C[i](i \ge 0)$，固定编码窗口为$W(W>1)$，$C\left[i\right]$按如下方法生成：
+\begin{eqnarray}
+C\left[i\right]=\begin{cases}\label{eq:43}
+\sum\limits_{j = 0}^i {{a_{ij}}{p_j}} & \left(0 \le i < W\right)\\
+\sum\limits_{j = 0}^{W-1} {{a_{ij}}{p_{i-W+1+j}}}&\left(i \ge W\right)
+\end{cases} \\
+a_{ij}=\begin{cases}\label{eq:44}
+2&(i \ge 5\&j=W-1)\\
+2&(0 \le i < 5\&j=i)\\
+1&(else)
+\end{cases}
+\end{eqnarray}
+\par
+式\ref{eq:43}中$a_{ij}$表示编码系数，$p_{j}$表示原始数据包。与正常编码包不同，冗余编码包的构成依然按照原先的方式，即各个原始数据包的系数为有线域$GF\left(2^8\right)$上的随机数。不同正常编码包的线性独立由不同编码包的不同维度保证。例如，编码窗口$W=5$时，$C\left[0\right]=2p_0$，$C\left[1\right]=p_0+2p_1$，$C\left[2\right]=p_0+p_1+2p_2$，$C\left[3\right]=p_0+p_1+p_2+2p_3$，$C\left[4\right]=p_0+p_1+p_2+p_3+2p_4$，$C\left[5\right]=p_1+p_2+p_3+p_4+2p_5$。$C\left[0\right] \sim C\left[5\right]$都是线性独立的。采用此种固定编码系数的方法
+
+
 \section{真实网络环境测试}
 \subsection{无人机lossy信道环境搭建}
 \subsection{测试结果}
