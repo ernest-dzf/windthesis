@@ -158,14 +158,15 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\label{Exptab}
 \end{table}
 乘法和除法的关键代码见代码\ref{GCAL}，\emph{gmul}实现乘法，\emph{gdiv}实现除法。
-	\begin{lstlisting}[caption=gmul和gdiv实现,label={GCAL},language={[ANSI]C}]
+	\begin{lstlisting}[float,caption=gmul和gdiv实现,label={GCAL},language={[ANSI]C}]
 	unsigned char gmul (unsigned char a, unsigned char b)
 	{
-	return Exp_tab[Log_tab[a] ^ Log_tab[b]];
+		return (!a || !b) ? 0 : 
+		Exp_tab[(Log_tab[a] + Log_tab[b]) % 255];
 	}
 	unsigned char gdiv (unsigned char a, unsigned char b)
 	{
-	return Exp_tab[Log_tab[a] ^ Log_tab[b]];
+		return gmul(a,Exp_tab[255 - Log_tab[b]]);
 	}
 	\end{lstlisting}
 
