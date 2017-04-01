@@ -177,7 +177,7 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\item 拼接两个结果得到$p_{encoded}=\{0000\ 0010\ 1010\ 0111\}$。
 \end{enumerate}
 \section{技术方案}
-\subsection{开发平台}
+\subsection{Raspberry Pi开发平台}
 TCP/NC的实现需要参与到协议栈的流程中去，涉及到内核开发。因此，只能选择开源的Linux平台。考虑到TCP/NC的应用场景主要是无线网络环境中的移动终端，本文决定选择一款嵌入式设备，在其上部署实现TCP/NC协议，以验证分析其在真实环境中的性能。
 \par
 Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金会开发。基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器，主频从700MHz到1.2GHz不等\textsuperscript{\cite{rasp}}。不仅如此，Raspberry Pi还引出了40个管脚，便于我们使用KGDB调试工具调试内核。图\ref{RASP_EPS}即为本文选择的Raspberry Pi 二代B型，主频900MHz，板载Ethernet网口，4个USB接口及HDMI视频输出。
@@ -579,4 +579,7 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	\end{tabular}
 \end{table}
 设置丢包率$\rho=5\%$，冗余度
+\par
+仿真图待补充。。。
 \section{本章小结}
+待补充。。。
