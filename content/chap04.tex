@@ -35,11 +35,11 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 \subsection{定位丢包}\label{DWDB}
 为了在NC层重传未被看到的报文，首先需要确定丢了哪些报文。
 \par
-源端保存了每个编码包的原始数据包信息，即这个编码包是由哪几个原始数据包组成的，如图\ref{FR_EPS}中的$C\left[9\right]$由$p_7$和$p_8$组成。当发送端收到接收端回复的ACK报文时，有如下几种情形。
+源端保存了每个编码包的原始数据包信息，即这个编码包是由哪几个原始数据包组成的，如图\ref{FR_EPS}中的$C\left[9\right]$由$p_7$和$p_8$组成。如图\ref{RCVACK_EPS}，当发送端收到接收端回复的ACK报文时，有如下几种情形。
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
 	\item 有新的数据被确认且ACK报文中R-flag（ 后面会解释R-flag含义 ）未置位，那么将其交给上层TCP。
 	\item 有新的数据被确认而ACK报文中R-flag置位，此ACK需要被抑制，不会被交付给上层TCP，如图\ref{NEWFR_EPS}中对$C\left[11\right]$和$C\left[12\right]$的ACK，但会更新NC层中未被看到的报文，从未被看到的报文列表中移除本次新确认的数据。
-	\item 本次ACK并没有确认新的数据，提取其中的\emph{Pid-reply}域，然后罗列\emph{Pid}值为\emph{Pid-reply}的编码包的所有原始数据包$p_i \sim p_j(i \le j)$。如果目前在发送端未被确认的数据包中最小序号为$seq_1$，$p_i$数据包的起始序号是$seq_2$，那么我们可知接收端那边未看到的报文序号是在$seq_1 \sim \left(seq_2 - 1\right)$之间。由于发送端可能会收到接收端多个这样的ACK报文，如图\ref{NEWFR_EPS}中对$C\left[6\right]$，$C\left[7\right]$和$C\left[8\right]$的确认ACK报文，未看到的报文区间会被更新，但更新的方式只能是区间长度变小，也就是说$seq_2-1$只能向着$seq_1$靠拢。以图\ref{NEWFR_EPS}为例，发送端在收到对$C\left[7\right]$的ACK后，未看到的报文区间不会改变，依然是$seq_{p_2} \sim seq_{p_5} - 1$。
+	\item 本次ACK并没有确认新的数据，提取其中的\emph{Pid-reply}域，然后罗列\emph{Pid}值为\emph{Pid-reply}的编码包的所有原始数据包$p_i \sim p_j(i \le j)$。如果目前在发送端未被确认的数据包中最小序号为$seq_m$，$p_i$数据包的起始序号是$seq_i$，那么我们可知接收端那边未看到的报文序号是在$seq_m \sim \left(seq_i - 1\right)$之间。由于发送端可能会收到接收端多个这样的ACK报文，如图\ref{NEWFR_EPS}中对$C\left[6\right]$，$C\left[7\right]$和$C\left[8\right]$的确认ACK报文，未看到的报文区间会被更新，但更新的方式只能是区间长度变小，也就是说$seq_i-1$只能向着$seq_m$靠拢。以图\ref{NEWFR_EPS}为例，发送端在收到对$C\left[7\right]$的ACK后，未看到的报文区间不会改变，依然是$seq_{p_2} \sim seq_{p_5} - 1$。
 \end{enumerate}
 \par
 从图\ref{NEWFR_EPS}中可以看到，接收端发出的对报文$C\left[11\right]$和$C\left[12\right]$的确认ACK报文被发送端的NC层拦截了，并没有交给上层。发送端的NC层直到收到ACK为$p_{10}$的报文，才将此ACK上交给上层TCP。这样达到了让上层TCP以为仅仅丢了一个包的目的。因此，我们需要在NC头部添加\emph{报文状态}字段。可以告知接收端当前这个报文能否让接收端产生确认所有重传报文的ACK报文。如果可以，那么接收端在回复给发送端的ACK报文中会将\emph{R-flag}清掉；如果不行，接收端在回复给发送端的ACK报文中会对\emph{R-flag}置位。这样发送端的NC层就可以根据\emph{R-flag}状态来决定是否将ACK报文送往上层TCP。表\ref{tab:BWZT}展示的是所有的报文状态信息。
@@ -61,8 +61,20 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 		\bottomrule
 	\end{tabular}
 \end{table}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/fr-rcvack.eps}
+	\caption{前向重传机制中对ACK的处理流程}
+	\label{RCVACK_EPS}
+\end{figure}
 \subsection{重传丢包}
-每当NC层收到上层TCP下来的重传报文时，我们的前向重传机制才会启动。发送端的NC层维护了一个链表\emph{re\_list}，保存着接收端那边未看到的报文；\emph{re\_list}通过接收端那边回的ACK报文来更新。是否启动前向重传取决于\emph{re\_list}是否为空。当NC层完成前向重传后，\emph{re\_list}会被清空。
+每当NC层收到上层TCP下来的重传报文时，我们的前向重传机制才会启动。发送端的NC层维护了一个链表\emph{re\_list}，保存着接收端那边未看到的报文；\emph{re\_list}通过接收端那边回的ACK报文来更新。是否启动前向重传取决于\emph{re\_list}是否为空。当NC层完成前向重传后，\emph{re\_list}会被清空。发送端对重传报文的处理流程见图\ref{FRT_EPS}。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/frt.eps}
+	\caption{发送端的前向重传处理流程}
+	\label{FRT_EPS}
+\end{figure}
 \par
 值得注意的是，在重传过程中，对于\emph{re\_list}中的报文，我们发送的是原始数据包，例如图\ref{NEWFR_EPS}中的$p_2$、$p_3$和$p_4$。这是为了加快接收端的解码进程。对照表\ref{tab:BWZT}，图\ref{NEWFR_EPS}中报文$p_2$和$p_3$的\emph{报文状态}域上填写的都是010；报文$p_4$的\emph{报文状态}域上填写的是011。这是由于$p_4$是这个非编码重传序列的最后一个重传报文。接收端在收到重传的$p_2$、$p_3$和$p_4$后会产生3个ACK报文，通过检查$p_2$、$p_3$和$p_4$的\emph{报文状态}域，接收端知道$p_4$才是这个非编码重传序列的最后一个重传报文。因此，对于$p_2$、$p_3$的ACK报文，接收端会对其R-flag域置位，让发送端的NC层不将$p_2$和$p_3$的ACK报文上传给TCP层；而对于$p_4$的ACK报文，接收端会清掉R-flag域，让发送端的NC层将$p_4$的ACK报文上传给TCP层。
 \par
@@ -74,7 +86,13 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 \par
 考虑一下超时重传的情况。NC层通过检查TCP层下来的报文是否在编码缓存中来确定这个报文是否是重传包。不管是超时重传报文还是快速重传报文，都首先检查该报文是否在\emph{re\_list}中，如果不在就加入到\emph{re\_list}，然后重传\emph{re\_list}的所有报文。
 \subsection{编码重传包}
-考虑到重传序列的最后一个重传包丢失造成的性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。
+考虑到重传序列的最后一个重传包丢失造成的性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。优先对\emph{re\_list}链表中排在前面，也就是序号小的报文进行编码，窗口大小和正常编码窗口大小一样都为\emph{W}。这样处理的目的是为了降低解码端的解码时延。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/bccc.eps}
+	\caption{发送端的补偿重传流程}
+	\label{BCCC_EPS}
+\end{figure}
 \section{改进冗余包发送时机}
 文献\cite{Sundararajan2009}中冗余包分布并非均匀分布。给定一个固定冗余度，其冗余特性并没有体现在每个编码包中。因此本文重新设计了冗余包的发送时机。假定冗余度为\emph{R} （ $R \ge 1$ ），对于从TCP层下来的每个报文，以$R - \left\lfloor R \right\rfloor$的概率发送 $\left\lfloor R+1 \right\rfloor$个编码包；以$1-\left(R-\left\lfloor R \right\rfloor\right)$的概率发送$\left\lfloor R \right\rfloor$个编码包。这样冗余度均匀分布在每个数据包中了。
 \section{自适应冗余度算法}
@@ -135,9 +153,9 @@ R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 	vand\_matrix[i][j]=(i+1)^j
 \end{equation}
 \par
-由\emph{Pid}到编码系数\emph{coeff}的映射函数为:
+由\emph{Pid}到编码系数\emph{coeff}的映射函数$f:Pid \rightarrow coeff$为:
 \begin{equation}
-	f:Pid \rightarrow coeff=vand\_matrix[Pid\%255]
+	f(Pid)=vand\_matrix[Pid\%255]
 \end{equation}
 \par
 发送端和接收端同时保持有相同的编码系数码本，接收端通过提取报文的\emph{Pid}字段即可知道编码包的编码系数。
