@@ -58,6 +58,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 		011 	& 未编码重传报文，且是最后一个\tabularnewline
 		100		& 重传编码报文，但不是最后一个\tabularnewline
 		101		& 重传编码报文，且是最后一个\tabularnewline
+		110		& 纯粹ACK报文\tabularnewline
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -76,7 +77,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 	\label{FRT_EPS}
 \end{figure}
 \par
-值得注意的是，在重传过程中，对于\emph{re\_list}中的报文，我们发送的是原始数据包，例如图\ref{NEWFR_EPS}中的$p_2$、$p_3$和$p_4$。这是为了加快接收端的解码进程。对照表\ref{tab:BWZT}，图\ref{NEWFR_EPS}中报文$p_2$和$p_3$的\emph{报文状态}域上填写的都是010；报文$p_4$的\emph{报文状态}域上填写的是011。这是由于$p_4$是这个非编码重传序列的最后一个重传报文。接收端在收到重传的$p_2$、$p_3$和$p_4$后会产生3个ACK报文，通过检查$p_2$、$p_3$和$p_4$的\emph{报文状态}域，接收端知道$p_4$才是这个非编码重传序列的最后一个重传报文。因此，对于$p_2$、$p_3$的ACK报文，接收端会对其R-flag域置位，让发送端的NC层不将$p_2$和$p_3$的ACK报文上传给TCP层；而对于$p_4$的ACK报文，接收端会清掉R-flag域，让发送端的NC层将$p_4$的ACK报文上传给TCP层。
+值得注意的是，在重传过程中，对于\emph{re\_list}中的报文，我们发送的是原始数据包，例如图\ref{NEWFR_EPS}中的$p_2$、$p_3$和$p_4$。这是为了加快接收端的解码进程。对照表\ref{tab:BWZT}，图\ref{NEWFR_EPS}中报文$p_2$和$p_3$的\emph{报文状态}域上填写的都是010；报文$p_4$的\emph{报文状态}域上填写的是011。这是由于$p_4$是这个非编码重传序列的最后一个重传报文。接收端在收到重传的$p_2$、$p_3$和$p_4$后会产生3个ACK报文，通过检查$p_2$、$p_3$和$p_4$的\emph{报文状态}域，接收端知道$p_4$才是这个非编码重传序列的最后一个重传报文。因此，对于$p_2$、$p_3$的ACK报文，接收端会对其R-flag域置位，让发送端的NC层不将$p_2$和$p_3$的ACK报文上传给TCP层；而对于$p_4$的ACK报文，接收端会清掉R-flag域，让发送端的NC层将$p_4$的ACK报文上传给TCP层。关于接收端的处理流程见图\ref{SINK_EPS}。
 \par
 考虑一下重传报文丢失的情况。
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
@@ -85,14 +86,15 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 \end{enumerate}
 \par
 考虑一下超时重传的情况。NC层通过检查TCP层下来的报文是否在编码缓存中来确定这个报文是否是重传包。不管是超时重传报文还是快速重传报文，都首先检查该报文是否在\emph{re\_list}中，如果不在就加入到\emph{re\_list}，然后重传\emph{re\_list}的所有报文。
-\subsection{编码重传包}
-考虑到重传序列的最后一个重传包丢失造成的性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。优先对\emph{re\_list}链表中排在前面，也就是序号小的报文进行编码，窗口大小和正常编码窗口大小一样都为\emph{W}。这样处理的目的是为了降低解码端的解码时延。
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=6in]{figures/bccc.eps}
-	\caption{发送端的补偿重传流程}
-	\label{BCCC_EPS}
+	\includegraphics[width=6in]{figures/sink.eps}
+	\caption{前向重传机制中接收端的处理流程}
+	\label{SINK_EPS}
 \end{figure}
+\subsection{编码重传包}
+考虑到重传序列如果再丢失对性能损失比较大，本文对重传报文进行再编码。在重传了\emph{re\_list}的所有不编码原始报文后，再重传$\left\lceil {R \times num\_re} \right\rceil  - num\_re$个编码报文，其中\emph{R}表示冗余度，\emph{num\_re}表示\emph{re\_list}中重传报文的个数。这里设置了一个阈值\emph{threshWnd}，如果\emph{re\_list}的报文个数小于\emph{threshWnd}，那么就对\emph{re\_list}的所有报文进行编码，换句话说编码包是由所有\emph{re\_list}链表中的报文组成；如果\emph{re\_list}的报文个数大于\emph{threshWnd}，那么就对\emph{re\_list}前\emph{threshWnd}个报文进行编码。这样处理的目的是为了降低解码端的解码时延。重传编码报文的\emph{报文状态}域填写方式参照表\ref{tab:BWZT}。
+
 \section{改进冗余包发送时机}
 文献\cite{Sundararajan2009}中冗余包分布并非均匀分布。给定一个固定冗余度，其冗余特性并没有体现在每个编码包中。因此本文重新设计了冗余包的发送时机。假定冗余度为\emph{R} （ $R \ge 1$ ），对于从TCP层下来的每个报文，以$R - \left\lfloor R \right\rfloor$的概率发送 $\left\lfloor R+1 \right\rfloor$个编码包；以$1-\left(R-\left\lfloor R \right\rfloor\right)$的概率发送$\left\lfloor R \right\rfloor$个编码包。这样冗余度均匀分布在每个数据包中了。
 \section{自适应冗余度算法}
@@ -131,7 +133,15 @@ R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
 	\item 提取\emph{Pid-reply}域，罗列Pid值为\emph{Pid-reply}的编码包的所有原始数据包$p_i \sim p_j\left(i \le j\right)$
 	\item 如果ACK报文的确认序号$ACK=p_k$，那么可知接收端解码矩阵在收到编号\emph{Pid=Pid-reply}的编码报文时，缺失$j-k+1$个编码包才可以变为可解状态。
+	\item 更新\emph{loss}和\emph{last\_loss}变量，其中\emph{loss}表示接收端解码矩阵变为可解状态所缺失的组合包个数，\emph{last\_loss}表示\emph{loss}上一次的值。
+	\item 计算当前时间$T_{now}$和上一次补偿重传的时间$T_{last}$的差值是否超过RTO。如果超过，那么重传当前编码缓存窗口的前\emph{loss}个报文；如果未超过，比较\emph{loss}的\emph{last\_loss}的值，如果$loss \le last\_loss$，那么不进行补偿重传，如果$loss > last\_loss$，说明在$T_{last}$到$T_{now}$这段时间又有报文丢失，那么就重传编码缓存窗口的前$loss-last\_loss$个报文。
 \end{enumerate}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/bccc.eps}
+	\caption{发送端的补偿重传流程}
+	\label{BCCC_EPS}
+\end{figure}
 \section{固定编码系数码本}
 原有TCP/NC协议的编码数据包系数是在某个有限域上的随机数。选定有限域越大，解码成功率越大。根据文献\cite{4015738}所述，当选定的有限域为$GF\left(2^8\right)$时，解码成功率超过$99.6\%$。但有限域越大，有限域上的运算要么耗时长，要么查表消耗内存过大。选定$GF\left(2^8\right)$是个折中的选择。在$GF\left(2^8\right)$下，每个系数是一个字节，当编码窗口比较大时，NC头部的系数是一大笔开销。
 \par
@@ -161,8 +171,9 @@ R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 发送端和接收端同时保持有相同的编码系数码本，接收端通过提取报文的\emph{Pid}字段即可知道编码包的编码系数。
 \section{真实网络环境测试}
 \subsection{无人机lossy信道环境搭建}
-\subsection{E-TCP/NC在无人机视频传输的应用}
-\subsection{测试结果}
+为了测试增强传输协议在无人机视频传输中的作用，本文搭建了无人机测试平台。以
+\subsection{iperf测试结果}
+\subsection{E-TCP/NC在无人机视频传输实测效果}
 \subsection{性能分析}
 \section{本章小结}
 为了在真实丢包环境中测试TCP/NC及其改进协议的性能，本文搭建了无人机测试环境。将部署了TCP/NC改进协议的Raspberry Pi搭载在无人机上，通过WIFI无线链路来与地面站通信。 
