@@ -2,24 +2,36 @@
 %                西南交通大学研究生学位论文：第三章内容
 %---------------------------------------------------------------------------------
 \chapter{TCP/NC协议实现}
-本章主要讲TCP/NC的具体实现，在lossy信道下测试TCP/NC的性能，并与标准的TCP-Reno进行分析对比。
+本章主要讲TCP/NC的具体实现，
+在模拟有损信道下测试TCP/NC的性能，
+并与标准的TCP-Reno进行分析对比。
+与文献\cite{翟丰泰2015基于网络编码的,李永超2015基于网络编码}采用Batch Coding所不同的是，本文采用流水线编码方式对数据包进行编码。相比Batch Coding，流水线编码可以更好地掩盖丢包，且和原有TCP协议的滑动窗口结合良好。
 \section{数据包编码}
-在阐述数据包编码之前，先简单介绍近世代数的相关概念。
+在阐述数据包编码之前，
+先简单介绍近世代数的相关概念。
 \subsection{有限域与扩域}
 \begin{myDef}[阿贝尔群]
-	对于一个非空元素集合$G$以及定义在$G$上的一种运算“$*$”（ 这里的$*$泛指一种代数运算，如$+$，$-$，$\times$，$\div$，模$m$加$\oplus$，模$m$乘$\odot$等）。若满足以下四个条件：
+	对于一个非空元素集合$G$以及定义在$G$上的一种运算“$*$”（ 这里的$*$泛指一种代数运算，
+	如$+$，$-$，$\times$，$\div$，
+	模$m$加$\oplus$，模$m$乘$\odot$等）。
+	若满足以下四个条件：
 	\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
 		\item 封闭性，即$\forall a,b \in G$，$\exists\left(a*b\right)=c\in G$。
 		\item 结合性，即$\forall a,b \in G$，$\exists a*\left(b*c\right)=\left(a*b\right)*c$。
 		\item 存在唯一一个单位元$e$，即$\forall a \in G$，$\exists a*e=e*a=a$。
-		\item $G$中的每个元素各自存在唯一的逆元，即$\forall a \in G$，$\exists {a^{ - 1}} \in G$，使得$a*{a^{-1}}={a^{-1}}*a=e$。这里${a^{-1}}$泛指逆元。
+		\item $G$中的每个元素各自存在唯一的逆元，
+		即$\forall a \in G$，$\exists {a^{ - 1}} \in G$，
+		使得$a*{a^{-1}}={a^{-1}}*a=e$。
+		这里${a^{-1}}$泛指逆元。
 		\item $\forall a,b \in G$，$\exists a*b=b*a$
 	\end{enumerate}
 	\par
-	则称这样的代数系统为阿贝尔群，记做$\left(G,*\right)$\textsuperscript{\cite{zzc2003}}。
+	则称这样的代数系统为阿贝尔群，
+	记做$\left(G,*\right)$\textsuperscript{\cite{zzc2003}}。
 \end{myDef}
 \begin{myDef}[有限域]
-	非空集合$F$含有有限个元素，其中定义了加和乘两种运算，且满足
+	非空集合$F$含有有限个元素，
+	其中定义了加和乘两种运算，且满足
 	\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
 		\item $F$关于加法构成阿贝尔群，加法恒等元记为0
 		\item $F$中所有非零元素对乘法构成阿贝尔群，乘法恒等元记为1
@@ -69,19 +81,71 @@
 	\label{SHUYU}
 \end{table}
 \par
-有限域提供了一个有限集，在该有限集上明确地定义且有效地实现了加法、减法、乘法及除法运算（ 减法可以转换为加法，除法可以转换为乘法），并允许系统使用矩阵、行列式、高斯消元等线性代数中常见的运算工具来解决该域上的联立线性方程组问题。
+有限域提供了一个有限集，
+在该有限集上明确地定义且有效地实现了加法、减法、乘法及除法运算
+（ 减法可以转换为加法，除法可以转换为乘法），
+并允许系统使用矩阵、行列式、高斯消元等线性代数中常见的运算工具来解决该域上的联立线性方程组问题。
 \par
-我们在讲到$GF\left(q\right)$时，经常顺带会讲到$GF\left(q^{m}\right)$，表示$GF\left(q\right)$的扩域。扩域里至少存在一个本原元$\alpha$，它的各次幂$\alpha^{0}$，$\alpha^{1}$，$\alpha^{2}$，$\dots$，$\alpha^{q^{m}-2}$构成了扩域$GF\left(q^{m}\right)$的全部非零域元素。表\ref{SHUYU}展示的就是以本原多项式$P\left(x\right)=x^{4}+x+1$对应的本原元的各次幂生成的$GF\left(2^4\right)$的全部非零元素。
+我们在讲到$GF\left(q\right)$时，
+经常顺带会讲到$GF\left(q^{m}\right)$，
+表示$GF\left(q\right)$的扩域。
+扩域里至少存在一个本原元$\alpha$，
+它的各次幂$\alpha^{0}$，
+$\alpha^{1}$，
+$\alpha^{2}$，
+$\dots$，
+$\alpha^{q^{m}-2}$构成了扩域$GF\left(q^{m}\right)$的全部非零域元素。
+表\ref{SHUYU}展示的就是以本原多项式$P\left(x\right)=x^{4}+x+1$对应的本原元的各次幂生成的$GF\left(2^4\right)$的全部非零元素。
 \subsection{数据包的运算}
-由于从TCP层下来的数据包都是字节流，如何抽象出我们在第\ref{xianxingbianma}小节中谈到的报文概念呢？进一步地，我们如何对这些报文进行各种操作，如加减乘除呢？
+由于从TCP层下来的数据包都是字节流，
+如何抽象出我们在第\ref{xianxingbianma}小节中谈到的报文概念呢？
+进一步地，我们如何对这些报文进行各种操作，如加减乘除呢？
 \par
-将数据包分解成字节，先对字节进行加减乘除的操作，拼接得到的结果是可行的。这解决了以何种角度刻画数据包的问题。对于数据包的运算，如果是在实数域上进行各种代数运算，则会涉及到进位的问题，不好处理。例如，$p_{1}$和$p_{2}$这两个数据包的二进制形式为$p_{1}=\left(1010\ 1010\right)$和$p_{2}=\left(1111\ 0000\right)$。在实数域上计算得到$p_{3}=p_{1}+p_{2}$，则$p_{3}=\left(1\ 1001\ 1010\right)$，$p_{1}$和$p_{2}$都是8个比特，但是$p_{3}$却是$9$比特，出现了进位，导致我们的处理很麻烦。
+将数据包分解成字节，
+先对字节进行加减乘除的操作，
+拼接得到的结果是可行的。
+这解决了以何种角度刻画数据包的问题。
+对于数据包的运算，
+如果是在实数域上进行各种代数运算，
+则会涉及到进位的问题，不好处理。
+例如，$p_{1}$和$p_{2}$这两个数据包的二进制形式为$p_{1}=\left(1010\ 1010\right)$和$p_{2}=\left(1111\ 0000\right)$。
+在实数域上计算得到$p_{3}=p_{1}+p_{2}$，
+则$p_{3}=\left(1\ 1001\ 1010\right)$，
+$p_{1}$和$p_{2}$都是8个比特，
+但是$p_{3}$却是$9$比特，
+出现了进位，
+导致我们的处理很麻烦。
 \par
-上一小节中提到的有限域和扩域是解决数据包运算问题的关键。有限域是一种代数结构，也存在着和实数域中一样的加减乘除等运算，并且各个元素进行加减乘除得到的结果也在有限域中。具体实现过程如下：
+上一小节中提到的有限域和扩域是解决数据包运算问题的关键。
+有限域是一种代数结构，
+也存在着和实数域中一样的加减乘除等运算，
+并且各个元素进行加减乘除得到的结果也在有限域中。
+具体实现过程如下：
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
-	\item 确定有限域的大小。由于在计算机中按字节操作最方便，一个字节8个比特，刚好可以看做是一个8位向量。因此，选定扩域$GF\left(2^8\right)$。
-	\item 选定一个在$GF\left(2^8\right)$下的生成元$\alpha$，$\alpha$的各次幂和零元素一起构成整个扩域，即$GF\left(2^8\right)=\{0,1,\alpha,\alpha^2,\alpha^3,\dots,\alpha^{254}\}$。$GF\left(2^8\right)$可用的生成元如表格\ref{GENERATOR}。这里我们选定$\alpha=0x03$作为生成元。换句话说，$\forall e \in GF\left(2^8\right) $，且$e \neq 0$，$e=\left(0x03\right)^{k}\left(k=0,1,2,\dots,254\right)$。
-	\item 构建以$0x03$作为生成元的$Exponential$表，$Exp\_tab[256]$和$Logarithm$表，$Log\_tab[256]$。其中$Exp\_tab[i]=\left(0x03\right)^{i}$，$\left(0x03\right)^{Log\_tab[i]}=i$。所有代数运算都在$GF\left(2^8\right)$下进行。$Exp\_tab[256]$和$Log\_tab[256]$如表\ref{Exptab}和表\ref{Logtab}。如此，我们在有限域上的运算仅仅通过查表就可以得到。例如，通过表$Log\_tab[256]$可以查到$\left(0x03\right)^{0x01}=0x03$，$\left(0x03\right)^{0xc6}=0x07$，那么$0x03*0x07=\left(0x03\right)^{0x01}*\left(0x03\right)^{0xc6}=\left(0x03\right)^{0x01+0xc6}=0x9$。通过查表法，可以快速的实现$GF\left(2^8\right)$上的乘除运算。
+	\item 确定有限域的大小。
+	由于在计算机中按字节操作最方便，
+	一个字节8个比特，
+	刚好可以看做是一个8位向量。
+	因此，选定扩域$GF\left(2^8\right)$。
+	\item 选定一个在$GF\left(2^8\right)$下的生成元$\alpha$，$\alpha$的各次幂和零元素一起构成整个扩域，
+	即$GF\left(2^8\right)=\{0,1,\alpha,\alpha^2,\alpha^3,\dots,\alpha^{254}\}$。
+	$GF\left(2^8\right)$可用的生成元如表格\ref{GENERATOR}。
+	这里我们选定$\alpha=0x03$作为生成元。
+	换句话说，$\forall e \in GF\left(2^8\right) $，
+	且$e \neq 0$，$e=\left(0x03\right)^{k}\left(k=0,1,2,\dots,254\right)$。
+	\item 构建以$0x03$作为生成元的$Exponential$表，
+	$Exp\_tab[256]$和$Logarithm$表，
+	$Log\_tab[256]$。
+	其中$Exp\_tab[i]=\left(0x03\right)^{i}$，
+	$\left(0x03\right)^{Log\_tab[i]}=i$。
+	所有代数运算都在$GF\left(2^8\right)$下进行。
+	$Exp\_tab[256]$和$Log\_tab[256]$如表\ref{Exptab}和表\ref{Logtab}。
+	如此，我们在有限域上的运算仅仅通过查表就可以得到。
+	例如，
+	通过表$Log\_tab[256]$可以查到$\left(0x03\right)^{0x01}=0x03$，$\left(0x03\right)^{0xc6}=0x07$，
+	那么$0x03*0x07=\left(0x03\right)^{0x01}*\left(0x03\right)^{0xc6}=\left(0x03\right)^{0x01+0xc6}=0x9$。
+	通过查表法，
+	可以快速的实现$GF\left(2^8\right)$上的乘除运算。
 \end{enumerate}
 \begin{table}[htbp]
 	\caption{$GF\left(2^8\right)$可用的生成元（ 十六进制 ）}
@@ -157,7 +221,9 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\end{tabular}
 	\label{Exptab}
 \end{table}
-乘法和除法的关键代码见代码\ref{GCAL}，\emph{gmul}实现乘法，\emph{gdiv}实现除法。
+乘法和除法的关键代码见代码\ref{GCAL}，
+\emph{gmul}实现乘法，
+\emph{gdiv}实现除法。
 	\begin{lstlisting}[float,caption=gmul和gdiv实现,label={GCAL},language={[ANSI]C}]
 	unsigned char gmul (unsigned char a, unsigned char b)
 	{
@@ -171,52 +237,134 @@ fc&1f&21&63&a5&f4& 7& 9&1b&2d&77&99&b0&cb&46&ca\\
 	\end{lstlisting}
 
 \par
-我们以两\ref{GCAL}个数据包$p_{1}$和$p_{2}$的运算为例，说明如何对数据包进行编码。假定数据包$p_{1}$和$p_{2}$都为一个2字节的报文，以比特流的形式表示，$p_{1}=\{1010\ 0101\ 0110\ 1111\}$，$p_{2}=\{1111\ 0000\ 1101\ 0110\}$，我们需要计算$p_{encoded}=7p_{1} \oplus 13p_{2}$的值。步骤如下：
+我们以两\ref{GCAL}个数据包$p_{1}$和$p_{2}$的运算为例，
+说明如何对数据包进行编码。
+假定数据包$p_{1}$和$p_{2}$都为一个2字节的报文，
+以比特流的形式表示，
+$p_{1}=\{1010\ 0101\ 0110\ 1111\}$，$p_{2}=\{1111\ 0000\ 1101\ 0110\}$，
+我们需要计算$p_{encoded}=7p_{1} \oplus 13p_{2}$的值。
+步骤如下：
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
-	\item 取$p_{1}$和$p_{2}$的第一个字节，分别是$\{1010\ 0101\}$和$\{1111\ 0000\}$，对应的十进制为$D_{p_1}=165$和$D_{p_2}=240$。计算$gmul\left(7,D_{p_1}\right)$和$gmul\left(13,D_{p_2}\right)$的值，分别是$0xc6$和$0xc4$。则$p_{encoded}$的第一个字节为$0xc4 \oplus 0xc6=0x02$，二进制表示为$\{0000\ 0010\}$。
-	\item 同样的方法处理$p_{1}$和$p_{2}$的第二个字节，结果为$\{1010\ 0111\}$。
+	\item 取$p_{1}$和$p_{2}$的第一个字节，
+	分别是$\{1010\ 0101\}$和$\{1111\ 0000\}$，
+	对应的十进制为$D_{p_1}=165$和$D_{p_2}=240$。
+	计算$gmul\left(7,D_{p_1}\right)$和$gmul\left(13,D_{p_2}\right)$的值，
+	分别是$0xc6$和$0xc4$。
+	则$p_{encoded}$的第一个字节为$0xc4 \oplus 0xc6=0x02$，
+	二进制表示为$\{0000\ 0010\}$。
+	\item 同样的方法处理$p_{1}$和$p_{2}$的第二个字节，
+	结果为$\{1010\ 0111\}$。
 	\item 拼接两个结果得到$p_{encoded}=\{0000\ 0010\ 1010\ 0111\}$。
 \end{enumerate}
 \section{技术方案}
 \subsection{Raspberry Pi开发平台}
-TCP/NC的实现需要参与到协议栈的流程中去，涉及到内核开发。因此，只能选择开源的Linux平台。考虑到TCP/NC的应用场景主要是无线网络环境中的移动终端，本文决定选择一款嵌入式设备，在其上部署实现TCP/NC协议，以验证分析其在真实环境中的性能。
+TCP/NC的实现需要参与到协议栈的流程中去，
+涉及到内核开发。
+因此，只能选择开源的Linux平台。
+考虑到无人机视频传输的应用场景，
+需要设备便携性好、性能强劲，
+可以在拍摄视频的同时进行编解码的工作，
+本文决定选择一款嵌入式设备，
+在其上部署实现TCP/NC协议，
+以验证分析其对无人机视频传输性能的提升。
 \par
-Raspberry Pi是一款基于Linux的单板机电脑，由英国的树莓派基金会开发。基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器，主频从700MHz到1.2GHz不等\textsuperscript{\cite{rasp}}。不仅如此，Raspberry Pi还引出了40个管脚，便于我们使用KGDB调试工具调试内核。图\ref{RASP_EPS}即为本文选择的Raspberry Pi 二代B型，主频900MHz，板载Ethernet网口，4个USB接口及HDMI视频输出。
+Raspberry Pi是一款基于Linux的单板机电脑，
+由英国的树莓派基金会开发。
+基于ARM架构的Raspberry Pi使用博通（ Broadcom ）公司的BCM28XX系列处理器
+，主频从700MHz到1.2GHz不等\textsuperscript{\cite{rasp}}。
+不仅如此，
+Raspberry Pi还引出了40个管脚，
+便于我们使用KGDB调试工具调试内核。
+图\ref{RASP_EPS}即为本文选择的Raspberry Pi 二代B型，
+主频900MHz，
+板载Ethernet网口，
+4个USB接口及HDMI视频输出。
 \begin{figure}[htbp]
 	\centering
 \includegraphics[width=6in]{figures/rasp.pdf}
 \caption{Raspberry Pi二代B型}
 \label{RASP_EPS}
 \end{figure}
-系统选择上，本文选择使用树莓派基金会的Debian系统，Linux内核版本为3.18\footnote{内核源码下载地址：\url{https://github.com/raspberrypi/linux}}。内核调试方案则选择使用KGDB调试工具，支持内核源码级别调试。
+系统选择上，
+本文选择使用树莓派基金会的Debian系统，
+Linux内核版本为3.18\footnote{内核源码下载地址：\url{https://github.com/raspberrypi/linux}}。
+内核调试方案则选择使用KGDB调试工具，
+支持内核源码级别调试。
 \subsection{Netfilter}
-NC层实施方案有两种。第一种是直接在内核的TCP协议源码上更改，添加我们的NC层各个模块，然后再编译内核源码；第二种则是利用Linux内核提供给用户用于处理网络封包的框架——Netfilter，很多防火墙软件都是基于Netfilter开发的。考虑到工程复杂度，本文选择的是Netfilter框架。
+NC层实施方案有两种。
+第一种是直接在内核的TCP协议源码上更改，
+添加我们的NC层各个模块，
+然后再编译内核源码；
+第二种则是利用Linux内核提供给用户用于处理网络封包的框架——Netfilter，
+很多防火墙软件都是基于Netfilter开发的。
+考虑到工程复杂度，
+本文选择的是Netfilter框架。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/packetflow.eps}
 	\caption{Netfilter框架及其在内核源码中调用关系}
 	\label{NETFILTER_EPS}
 \end{figure}
-Linux中最常用、最基本的防火墙软件称为$iptables$。$iptables$防火墙通过与Linux内核网络协议栈的包过滤钩子交互来工作。这些内核钩子被称为Netfilter框架。Linux系统中允许注册钩子程序的点有5个。数据包在路过Linux的网络协议栈时（ 出去或者进来 ） 将触发这些钩子，允许注册这些钩子的函数处理处在钩子点处的报文。数据包所触发的钩子取决于数据包是传入还是传出，数据包的目的地，以及数据包在上一个钩子点是否被丢弃或拒绝。
+Linux中最常用、最基本的防火墙软件称为$iptables$。
+$iptables$防火墙通过与Linux内核网络协议栈的包过滤钩子交互来工作。
+这些内核钩子被称为Netfilter框架。
+Linux系统中允许注册钩子程序的点有5个。
+数据包在路过Linux的网络协议栈时（ 出去或者进来 ） 将触发这些钩子，
+允许注册这些钩子的函数处理处在钩子点处的报文。
+数据包所触发的钩子取决于数据包是传入还是传出，
+数据包的目的地，
+以及数据包在上一个钩子点是否被丢弃或拒绝。
 \par
 以下钩子表示网络协议栈中有标准定义的钩子点：
 \begin{itemize}[leftmargin=.5in]
-	\item \textbf{NF\_IP\_PRE\_ROUTING}:数据包在进入协议栈之后，在对这个数据包作出路由决定之前，会触发这个钩子。
-	\item \textbf{NF\_IP\_LOCAL\_IN}:如果一个数据包是送往本机的，那么在作出这个路由决定之后，就会触发这个钩子。
+	\item \textbf{NF\_IP\_PRE\_ROUTING}:数据包在进入协议栈之后，
+	在对这个数据包作出路由决定之前，会触发这个钩子。
+	\item \textbf{NF\_IP\_LOCAL\_IN}:如果一个数据包是送往本机的，
+	那么在作出这个路由决定之后，就会触发这个钩子。
 	\item \textbf{NF\_IP\_FORWARD}:如果一个数据包经过路由判定是送往其他机器的，那么就会触发这个钩子。
-	\item \textbf{NF\_IP\_POST\_ROUTING}:在数据包离开本机之前，会触发这个钩子。触发这个钩子的数据包包括从本机发往网络的包和仅仅是经过本机的路由判定后发往网络中其他机器的报文。
+	\item \textbf{NF\_IP\_POST\_ROUTING}:在数据包离开本机之前，会触发这个钩子。
+	触发这个钩子的数据包包括从本机发往网络的包和仅仅是经过本机的路由判定后发往网络中其他机器的报文。
 	\item \textbf{NF\_IP\_LOCAL\_OUT}:数据包由本地发出去时，会执行挂载在这个钩子上的模块。
 \end{itemize}
 \par
-图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。想要在这些钩子点注册的内核模块还需要提供一个优先级，用于决定在触发这个钩子时，按照一个什么顺序执行挂载在这些钩子上的模块。Netfilter中的钩子函数有固定的返回值，常用的有如下几个：
+图\ref{NETFILTER_EPS}展示的是Netfilter的框架及其在内核源码的调用关系。
+想要在这些钩子点注册的内核模块还需要提供一个优先级，
+用于决定在触发这个钩子时，
+按照一个什么顺序执行挂载在这些钩子上的模块。
+Netfilter中的钩子函数有固定的返回值，
+常用的有如下几个：
 \begin{itemize}[leftmargin=.5in]
-	\item NF\_ACCEPT：当前钩子函数对数据包的处理结束，通知hook chain继续遍历其他的钩子函数。
-	\item NF\_DROP：终止hook chain执行，并释放当前的skb。
-	\item NF\_STOLEN：同样终止hook chain执行，但告诉Netfilter由我这个hook来接管skb的生命周期。
+	\item NF\_ACCEPT：当前钩子函数对数据包的处理结束，
+	通知hook chain继续遍历其他的钩子函数。
+	\item NF\_DROP：终止hook chain执行，
+	并释放当前的skb。
+	\item NF\_STOLEN：同样终止hook chain执行，
+	但告诉Netfilter由我这个hook来接管skb的生命周期。
 \end{itemize}
-本论文的NC层就是架构于Netfilter框架，将我们的NC层编解码模块$ncout$和$ncin$分别挂在NF\_IP\_LOCAL\_OUT和NF\_IP\_LOCAL\_IN这两个钩子点上。凡是从TCP层下来的报文都会进入编码模块，凡是从IP层上来的报文都会进入解码模块。这样我们的NC层就接管了进出本机的报文，达到了将NC层插入TCP层和IP层之间的目的。
+本论文的NC层就是架构于Netfilter框架，
+将我们的NC层编解码模块$ncout$和$ncin$分别挂在NF\_IP\_LOCAL\_OUT和NF\_IP\_LOCAL\_IN这两个钩子点上。
+凡是从TCP层下来的报文都会进入编码模块，
+凡是从IP层上来的报文都会进入解码模块。
+这样我们的NC层就接管了进出本机的报文，
+达到了将NC层插入TCP层和IP层之间的目的。
 \subsection{报文获取}
-NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，其形式为\emph{sk\_buff}结构体。\emph{sk\_buff}可能是Linux网络代码中最重要的数据结构，包含了数据包所需的所有控制信息，代表已接收或正要传输的数据的报头\textsuperscript{\cite{linux网络技术内幕}}。在内核中，\emph{sk\_buff}被组织成链表，这样就可以快速地将\emph{sk\_buff}从一个链表移动到另一个链表。数据包在Linux的网络协议栈的不同层之间传递，其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。如\emph{sk\_buff}结构体中的data指针，其指向当前协议层的有效数据内容的起始地址。对于传输层，有效数据包括用户数据和传输层协议头部；对于网络层，有效数据包括用户数据、传输层协议和网络层协议头部；对于数据链路层，有效数据包括用户数据、传输层协议头部、网络层协议头部和链路层协议头部。因此，不同协议层需要移动\emph{sk\_buff}的data指针，以添加首部。这比在不同层之间拷贝数据包效率高得多。图\ref{SKBUFFEPS}为\emph{sk\_buff}数据结构示意图。
+NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，
+其形式为\emph{sk\_buff}结构体。
+\emph{sk\_buff}可能是Linux网络代码中最重要的数据结构，
+包含了数据包所需的所有控制信息，
+代表已接收或正要传输的数据的报头\textsuperscript{\cite{linux网络技术内幕}}。
+在内核中，\emph{sk\_buff}被组织成链表，
+这样就可以快速地将\emph{sk\_buff}从一个链表移动到另一个链表。
+数据包在Linux的网络协议栈的不同层之间传递，
+其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。
+如\emph{sk\_buff}结构体中的data指针，
+其指向当前协议层的有效数据内容的起始地址。
+对于传输层，有效数据包括用户数据和传输层协议头部；
+对于网络层，有效数据包括用户数据、传输层协议和网络层协议头部；
+对于数据链路层，有效数据包括用户数据、传输层协议头部、网络层协议头部和链路层协议头部。
+因此，不同协议层需要移动\emph{sk\_buff}的data指针，以添加首部。
+这比在不同层之间拷贝数据包效率高得多。
+图\ref{SKBUFFEPS}为\emph{sk\_buff}数据结构示意图。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/skbuff.eps}
@@ -226,7 +374,27 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \par
 
-上一小节讲到，Netfilter框架为NC层的实现提供了方案。每当有数据包从网络中发往本机时，就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；当有数据包从本机发往网络中时，就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。代码\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），TCP层下来的报文从此函数处进入NC层，然后被编码发往网络。\emph{ncout}函数是由用户编写，但是其参数类型和个数都是固定不变的。用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。如果数据包从TCP层下来，通过\emph{struct sk\_buff *skb}，我们可以获得TCP的头部信息如源端端口、目的端口，也可以获得去掉TCP头部的用户数据；如果数据包从下层下来，我们可以移动data指针获取对方的IP地址及用户数据。网络编码层利用这些信息建立一个维护NC连接的控制块,对数据包进行编码。
+上一小节讲到，
+Netfilter框架为NC层的实现提供了方案。
+每当有数据包从网络中发往本机时，
+就会调用挂载在NF\_IP\_LOCAL\_IN上的模块（ 或者说是函数 ）；
+当有数据包从本机发往网络中时，
+就会调用挂载在NF\_IP\_LOCAL\_OUT上的模块。
+内核模块则通过\emph{struct sk\_buff *skb}来对数据包进行各种操作。
+代码\ref{NCOUT}即为挂载在NF\_INET\_LOCAL\_OUT处的\emph{ncout}函数体（ 函数实现已省略 ），
+TCP层下来的报文从此函数处进入NC层，
+然后被编码发往网络。
+\emph{ncout}函数是由用户编写，
+但是其参数类型和个数都是固定不变的。
+用户通过参数列表中的\emph{struct sk\_buff * skb}来对从TCP层下来的报文做进一步处理。
+如果数据包从TCP层下来，
+通过\emph{struct sk\_buff *skb}，
+我们可以获得TCP的头部信息如源端端口、目的端口，
+也可以获得去掉TCP头部的用户数据；
+如果数据包从下层下来，
+我们可以移动data指针获取对方的IP地址及用户数据。
+网络编码层利用这些信息建立一个维护NC连接的控制块,
+对数据包进行编码。
 	\begin{lstlisting}[caption=NF\_INET\_LOCAL\_OUT钩子点函数,label={NCOUT},language={[ANSI]C}]
 	static unsigned int ncout(unsigned int hooknum,struct sk_buff * skb,const struct net_device *in,
 	const struct net_device *out,int (*okfn) (struct sk_buff *))
@@ -237,7 +405,22 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 
 \section{NC层关键技术}
 \subsection{系统框架}
-图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，虚线框内的就是NC层。对于从TCP层下来的报文，首先要根据TCP报文头部信息判定是何种报文。如果是控制报文，如TCP连接建立的三次握手、RST报文等，则交由控制报文处理模块进行分类处理。控制报文无需经过编解码即可发往IP层。如果从TCP层下来的是普通报文，数据报文需要被送到编码模块进行编码，编码后的数据包需要添加NC头部，填写NC层的控制信息，如编码包的系数、长度等；纯ACK报文（ 不带数据 ）,也需要添加NC头部，主要是为了不浪费向对端传递NC层的相关信息的机会。
+图\ref{JIAGOU_EPS}展示的是TCP/NC的实现架构，
+虚线框内的就是NC层。
+对于从TCP层下来的报文，
+首先要根据TCP报文头部信息判定是何种报文。
+如果是控制报文，
+如TCP连接建立的三次握手、RST报文等，
+则交由控制报文处理模块进行分类处理。
+控制报文无需经过编解码即可发往IP层。
+如果从TCP层下来的是普通报文，
+数据报文需要被送到编码模块进行编码，
+编码后的数据包需要添加NC头部，
+填写NC层的控制信息，
+如编码包的系数、长度等；
+纯ACK报文（ 不带数据 ）,
+也需要添加NC头部，
+主要是为了不浪费向对端传递NC层的相关信息的机会。
 \par
 从IP层上来的报文也需要经过数据包类别判定。非NC层报文，即控制报文，直接交给控制报文处理模块处理，然后交给上层TCP层。NC报文，纯ACK则在提取NC层有用信息后再交付给上层TCP层；数据报文则送到解码模块进行解码。不论解码成功，亦或是仅仅看到某个报文（ see a packet ）,解码模块都需要和NC层控制单元交互信息，以便让NC层控制单元决定是否向TCP连接的对方回复ACK。
 \begin{figure}[htbp]
@@ -496,7 +679,7 @@ backlog队列的组织形式为链表。链表优先按构成编码包的原始�
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=4in]{figures/backlog.eps}
+	\includegraphics[width=5in]{figures/backlog.eps}
 	\caption{backlog链表}
 	\label{BACKLOG_EPS}
 \end{figure}
@@ -549,16 +732,29 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 	\caption{接收端NC层窗口值设定}
 	\label{RCVWND_EPS}
 \end{figure}
-\section{测试结果}
-本文在Raspberry pi上实现部署了TCP/NC协议，为了精确控制链路的丢包率，我们在接收端的IF\_IP\_PRE\_ROUTING和IF\_IP\_POST\_ROUTING这两处挂载了丢包函数，以概率$\rho$将报文丢弃掉。测试拓扑如图\ref{TUOPU_EPS}。
-
+\section{模拟丢包测试结果}
+本文在Raspberry pi上实现部署了TCP/NC协议，
+为了精确控制链路的丢包率，
+我们在接收端的IF\_IP\_PRE\_ROUTING和IF\_IP\_POST\_ROUTING这两处挂载了丢包函数，
+以概率$\rho$将报文丢弃掉。
+测试拓扑如图\ref{TUOPU_EPS}。
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=5in]{figures/tuopu.eps}
+	\includegraphics[width=4in]{figures/tuopu.eps}
 	\caption{测试拓扑}
 	\label{TUOPU_EPS}
 \end{figure}
-由于NC层掩盖了丢包，而TCP-Reno的拥塞控制策略是基于丢包的，因此文献\cite{Sundararajan2009}没有采用TCP-Reno版本，而使用了TCP-Vegas。TCP-Vegas采用基于RTT的估计来进行拥塞控制，利用TCP-Vegas做为TCP/NC的上层TCP版本可以兼顾多连接的平衡性。但是我们也看到，TCP/NC的随机丢包在上层看来是RTT的增大\textsuperscript{\cite{Sundararajan2009}}（ 图\ref{CODINGACK_EPS}中的RTT2），如果采用TCP-Vegas的话，就会让TCP-Vegas认为链路容量减小，降低发送速度。本文不考虑多条TCP连接传输的平衡性，因此采用TCP-Reno作为TCP/NC的上层TCP协议。
+\par
+由于NC层掩盖了丢包，而TCP-Reno的拥塞控制策略是基于丢包的，因此文献\cite{Sundararajan2009}没有采用TCP-Reno版本，而使用了TCP-Vegas。
+TCP-Vegas采用基于RTT的估计来进行拥塞控制，
+利用TCP-Vegas做为TCP/NC的上层TCP版本可以兼顾多连接的平衡性。
+但是我们也看到，
+TCP/NC的随机丢包在上层看来是RTT的增大\textsuperscript{\cite{Sundararajan2009}}（ 图\ref{CODINGACK_EPS}中的RTT2），
+如果采用TCP-Vegas的话，
+就会让TCP-Vegas认为链路容量减小，
+降低发送速度。
+对于无人机视频传输来说，多条TCP连接传输的平衡性不在考虑之内，
+因此采用TCP-Reno作为TCP/NC的上层TCP协议。
 测试环境参数如表\ref{tab:CESHI}。
 \begin{table}[htp]
 	\centering
@@ -576,11 +772,18 @@ decoded队列主要用于存放已经解码出的报文。值得注意的是，d
 		内核版本 &Linux 3.18\tabularnewline
 		TCP协议版本 &TCP-Reno\tabularnewline
 		测试软件 &iperf\tabularnewline
+		测试时间 &60秒\tabularnewline
 		\bottomrule
 	\end{tabular}
 \end{table}
-设置丢包率$\rho=5\%$，冗余度
 \par
-仿真图待补充。。。
+首先测试了冗余度\emph{R}对吞吐率的影响。这里固定链路丢包率为$5\%$。测试结果如图。
+\par
 \section{本章小结}
-待补充。。。
+本章主要讲了TCP/NC协议的实现技术细节。
+阐述了如何对数据包进行编码，
+给出了在Raspberry Pi上实现TCP/NC的技术方案。
+对TCP/NC协议实现过程中的关键环节进行了详细描述，
+包括NC头部设计、NC编码缓存、NC解码缓存和NC层接收窗口的计算。
+最后在模拟无人机视频传输丢包环境中，
+测试TCP/NC的实际性能。

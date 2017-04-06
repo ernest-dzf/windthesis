@@ -319,7 +319,7 @@ TCP可靠传输的背后思想是使用Acknowledgements对按序到来的数据�
 	\label{TCPNC_EPS}
 \end{figure}
 \par
-TCP/NC能够抵抗链路丢包的关键就是发送端进行冗余编码。通过“seen”这个概念，将链路丢包这个问题往后推。如果后期的冗余包能够补偿丢失的报文，那么TCP层就不会发现丢包。如图\ref{CODINGACK_EPS}所示，虽然$SEQ=2$和$SEQ=3$这两个报文丢失，但发送端依然可以收到对$p_{2}$和$p_{3}$的ACK。只要后期传输过程中的冗余包足够补偿掉$SEQ=2$和$SEQ=3$的丢失，那么上层TCP就根本发现不了丢包。可以看见，TCP/NC可以一定程度掩盖链路的丢包。
+TCP/NC能够抵抗链路丢包的关键就是发送端进行冗余编码。通过“seen”这个概念，将链路丢包这个问题往后推。如果后期的冗余包能够补偿丢失的报文，那么TCP层就不会发现丢包。如图\ref{CODINGACK_EPS}所示，虽然$SEQ=2$和$SEQ=3$这两个报文丢失，但发送端依然可以收到对$p_{2}$和$p_{3}$的ACK。只要后期传输过程中的冗余包足够补偿掉$SEQ=2$和$SEQ=3$的丢失，那么上层TCP就根本发现不了丢包。理论上，当链路的丢包率为$\rho$时，设置的冗余度应该为$R=\frac{1}{1-\rho}$。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=4in]{figures/codingack.pdf}
