@@ -39,6 +39,28 @@
 \section*{未来工作展望}
 在下一步的研究和学习过程中，我们将在以下方面做出改进：
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
-	\item NC层的编解码过程耗费资源太大。如第\ref{sec:monidiubaoceshijieguo}小节所述，100M网卡在添加了编解码模块后，峰值速度直接降到了12Mbps。这其中有代码优化原因，也有Raspberry Pi性能有限的原因，但本质上是由于编解码本来就耗费资源，而本文又以模块的形式实现E-TCP/NC，导致软中断时间过长，影响最终吞吐率。在今后的工作中，将优化目前代码，寻求新的编解码方式，以便可以同时处理多个字节，降低解码端的开销。
-	\item 目前对TCP报文的处理仅仅覆盖了一部分情况，对于TCP协议的选项字段、URG字段、PSH字段等都未做处理。后期需要改进目前的实现，使E-TCP/NC完全兼容目前的TCP协议。
+	\item NC层的编解码过程耗费资源太大。
+	如第\ref{sec:monidiubaoceshijieguo}小节所述，
+	100M网卡在添加了编解码模块后，
+	峰值速度直接降到了12Mbps。
+	这其中有代码优化原因，
+	也有Raspberry Pi性能有限的原因，
+	但本质上是由于编解码本来就耗费资源，
+	而本文又以模块的形式实现E-TCP/NC，
+	导致软中断时间过长，
+	影响最终吞吐率。
+	在今后的工作中，
+	将优化目前代码，
+	寻求新的编解码方式，
+	以便可以同时处理多个字节，
+	降低解码端的开销。
+	\item 目前对TCP报文的处理仅仅覆盖了一部分情况，
+	对于TCP协议的选项字段、URG字段、PSH字段等都未做处理。
+	后期需要改进目前的实现，
+	使E-TCP/NC完全兼容目前的TCP协议。
+	\item TCP中对ACK反馈的依赖加大了无人机视频传输的时延，
+	目前有学者已经做出了相关工作\textsuperscript{\cite{ontheflycoding}}，
+	降低TCP对ACK的依赖，
+	后期的工作中，
+	将尝试将其与E-TCP/NC结合起来。
 \end{enumerate}
