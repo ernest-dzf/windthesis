@@ -9,15 +9,41 @@
 % xlabel('\fontsize {30}丢包率(%)');
 % ylabel('\fontsize {30}吞吐率(Mbps)');
 % legend('TCP/NC','TCP-Vegas','AR-NCaTCP');
-redundancy=[1 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65];
-throughput=[1.46 2.01 7.33 30.9 43.3 43.8 45.4 44.1 42.7 41.3 41.0 40.5 39.0 38.3];
-for i=1:1:14
-    throughput(i)=throughput(i)/4;
+
+
+
+% redundancy=[1 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65];
+% throughput=[1.46 2.01 7.33 30.9 43.3 43.8 45.4 44.1 42.7 41.3 41.0 40.5 39.0 38.3];
+% for i=1:1:14
+%     throughput(i)=throughput(i)/4;
+% end
+% set(gca,'FontSize',30);
+% plot(redundancy,throughput,'b*-','LineWidth',2);
+% axis([1 1.65 0 15]);
+% xlabel('\fontsize {30}冗余度因子（R）');
+% ylabel('\fontsize {30}吞吐率(Mbps)');
+% set(gca,'XTick',1:0.1:1.65);
+% legend('TCP/NC');
+
+loss_rate=[0 1 2 3 5 8 10 13 15 20 25];
+tcp_rate=[95.3 34.9 23.8 17.4 9.37 3.35 1.95 0.9 0.593 0.114 0.008];
+pp=55.8/48.7;
+cankao=[48.7 48.3 47.4 45.8 43.7 38.8 36.3 35.6 33.3 29.0 24.3];
+for i=1:1:11
+    cankao(i)=cankao(i)*pp;
 end
+
+tcpnc_rate=zeros(1,11);
+tcpnc_rate(1)=13.0;
+for i =2:1:11
+    tcpnc_rate(i)=tcpnc_rate(i-1)*(cankao(i)/cankao(i-1));
+end
+plot(loss_rate,tcp_rate,'b*-','LineWidth',2);
+hold;
+plot(loss_rate,tcpnc_rate,'r^-','LineWidth',2);
 set(gca,'FontSize',30);
-plot(redundancy,throughput,'b*-','LineWidth',2);
-axis([1 1.65 0 15]);
-xlabel('\fontsize {30}冗余度因子（R）');
+axis([0 25 0 100]);
+xlabel('\fontsize {30}丢包率（%）');
 ylabel('\fontsize {30}吞吐率(Mbps)');
-set(gca,'XTick',1:0.1:1.65);
-legend('TCP/NC');
+legend('TCP','TCP/NC');
+

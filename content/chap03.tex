@@ -820,7 +820,28 @@ TCP/NC的随机丢包在上层看来是RTT的增大\textsuperscript{\cite{Sundar
 Raspberry Pi的性能不够，
 所以很大程度影响了最终的吞吐率。
 \par
-接着，我们对不同丢包率下TCP和TCP/NC的性能进行了对比测试。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/throughput2lossrate.eps}
+	\caption{吞吐率-丢包率}
+	\label{THROUGHPUT2LOSSRATE_EPS}
+\end{figure}
+接着，我们对不同丢包率下TCP和TCP/NC的性能进行了对比测试，
+如图\ref{THROUGHPUT2LOSSRATE_EPS}所示，
+其中TCP/NC的吞吐率都为最优吞吐率，
+也就是说冗余因子是按照最优设定的。
+可以看到标准TCP协议的吞吐率随着丢包率的变大急速减小，
+而TCP/NC的吞吐率随着丢包率的变大线性减小，
+而且减小幅度不大。
+\par
+值得注意的是，
+当丢包率$\rho$小于$5\%$时，
+标准TCP的吞吐率大幅高于TCP/NC。
+其原因是编解码模块对CPU的计算资源的占用过大，
+而Raspberry Pi的性能又比较弱，
+导致内核处理数据包能力变弱导致的。
+换句话说，在实际部署中，
+TCP/NC的吞吐率很大程度上受制于设备的性能。
 \section{本章小结}
 本章主要讲了TCP/NC协议的实现技术细节。
 阐述了如何对数据包进行编码，
@@ -828,4 +849,4 @@ Raspberry Pi的性能不够，
 对TCP/NC协议实现过程中的关键环节进行了详细描述，
 包括NC头部设计、NC编码缓存、NC解码缓存和NC层接收窗口的计算。
 最后在模拟无人机视频传输丢包环境中，
-测试TCP/NC的实际性能
+测试TCP/NC的实际性能。
