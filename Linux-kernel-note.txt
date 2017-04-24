@@ -1,0 +1,13 @@
+1.skb里面的transport_header是sk_buff_data_t类型，sk_buff_data_t类型（是指针还是偏移量）取决于机器是32位还是64位
+2.sk_buff_data_t类型如果是偏移值的话，其偏移值是相对于skb->head来讲的
+3.链路层如果是Ethernet协议的话，以太网帧最短为64字节，不足的话在最后面补0。wireshark抓的最小为60字节，
+还有以太网帧最后面的FCS字段4字节。以太网帧头14字节。
+3.NF_INET_LOCAL_OUT处抓的包，skb->data指向的是ip头部。
+4.skb->head和skb->end指向已分配缓冲区空间的开端和尾端。而data和tail则指向实际数据的开端和尾端。
+5.skb->tail与skb->data相对应，换句话说，如果skb->data指向的是ip头部，那么skb->tail就是ip数据包的尾部
+6.如果数据包从IP层上来，但还没有达到tcp层，我们是不能直接使用tcp_hdrlen()函数的。原因是skb里面有些值需要到tcp层才会被内核填充，
+而tcp_hdrlen()函数利用了这些值。像这样的情况有很多，值得注意。
+7.在构造MAC数据包的时候，如果MAC帧长度不够的话，注意补0
+8.LOCAL_IN点处，skb->data指向的还是IP头部，但是skb->transport_header的值还没有被填充，通过函数tcp_hdr()获取的tcp地址也是不正确的
+9.从tcp层下来的包，在LOCAL_OUT处如何获得ip头部大的指针的，ip_hdr函数？ip头部预留的长度是在内核中哪里被确定的？
+10.本机要出去的包，如何获得MAC地址。

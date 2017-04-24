@@ -33,7 +33,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 	\label{NEWFR_EPS}
 \end{figure}
 \subsection{新NC头部设计}\label{sec:newnc}
-为了支撑前向重传机制，本文设计了新的NC头部，如图\ref{NEWHEADER_EPS}。原有TCP/NC头部设计 （ 图\ref{CODINGHEADER_EPS} ）中的\emph{Res}字段，有6个比特可供使用，对应图\ref{NEWHEADER_EPS}中的$b_1 \sim b_6$。此六个比特与标准TCP中的保留字段对应。在第\ref{ztlc}小节中，我们讲到需要区分NC报文和普通TCP报文，可以利用$b_1$标识这个是TCP报文还是NC报文。利用$b_2$表示\emph{R-flag}，表示当前这个报文是否要被上交给TCP层；利用$b_3$、$b_4$和$b_5$一起表示当前报文的\emph{报文状态}（ 后面会讲到\emph{报文状态}的作用 ）。增加了\emph{Pid}和\emph{Pid-reply}两个域，各自两个字节。其中\emph{Pid}表示NC层发出的报文的编号，以报文为计数单位，而非字节。NC层发出的每个线性组合报文有独一无二的\emph{Pid}（ 回环问题另做考虑 ），接收端在收到编号为\emph{Pid}的线性组合报文后，在回复的ACK报文中，\emph{Pid-reply}域就填上\emph{Pid}，表示当前这个ACK是由编号为\emph{Pid}的线性组合包激发的。
+为了支撑前向重传机制，本文设计了新的NC头部，如图\ref{NEWHEADER_EPS}。原有TCP/NC头部设计 （ 图\ref{CODINGHEADER_EPS} ）中的\emph{Res}字段，有6个比特可供使用，对应图\ref{NEWHEADER_EPS}中的$b_1 \sim b_6$。此六个比特与标准TCP中的保留字段对应。在实现中，可以利用$b_1$标识这个是TCP报文还是NC报文。利用$b_2$表示\emph{R-flag}，表示当前这个报文是否要被上交给TCP层；利用$b_3$、$b_4$和$b_5$一起表示当前报文的\emph{报文状态}（ 后面会讲到\emph{报文状态}的作用 ）。增加了\emph{Pid}和\emph{Pid-reply}两个域，各自两个字节。其中\emph{Pid}表示NC层发出的报文的编号，以报文为计数单位，而非字节。NC层发出的每个线性组合报文有独一无二的\emph{Pid}（ 回环问题另做考虑 ），接收端在收到编号为\emph{Pid}的线性组合报文后，在回复的ACK报文中，\emph{Pid-reply}域就填上\emph{Pid}，表示当前这个ACK是由编号为\emph{Pid}的线性组合包激发的。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/newheader.eps}
@@ -145,7 +145,7 @@ TCP-Reno对于一个RTO内报文的连续丢失采取的是单个依次重传的
 R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 \end{equation}
 其中$R_{old}$表示最近一次计算得到的冗余度。式\ref{eq:hdpj}使用了滑动平均方法，将先前所计算的冗余度考虑进去。根据网络状况可以调整\emph{a}和\emph{b}的值。如果网络状况变化频繁，那么\emph{a}的值设置的比\emph{b}大一些；如果网络状况稳定，那么\emph{a}的值可以设的比\emph{b}小。
-\section{补偿重传算法}
+\section{补偿重传算法}\label{sec:loss}
 如第\ref{DWDB}小节所述，我们还可以通过Pid-reply和ACK确认号间接获知接收端的解码矩阵信息。换句话说，可以大概了解接收端的解码矩阵还差多少个编码包才可以变为可解状态，这与文献\cite{song2011self}中的思想是一致的。补偿重传的思想最初由文献\cite{5403816}提出，作者在ACK头部添加\emph{loss}和\emph{Pid-reply}字段，\emph{loss}表示接收端解码矩阵变为可解状态还缺失的编码包个数，\emph{Pid-reply}表示激发本次ACK报文的编码包的编号。补偿重传可以显著地降低解码时延和解码矩阵的维度。
 \par
 本文借鉴文献\cite{5403816}的方法，与之不同的是发送端通过\emph{Pid-reply}字段间接了解接收端的解码矩阵信息，无需额外添加\emph{loss}字段，复用了\emph{Pid-reply}字段。如第\ref{DWDB}小节说讲，当发送端收到接收端回复的ACK报文时，如果有新的数据被确认且ACK报文中R-flag未置位，此时发送端可以按如下步骤进行：
@@ -188,13 +188,90 @@ R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 \end{equation}
 \par
 发送端和接收端同时保持有相同的编码系数码本，接收端通过提取报文的\emph{Pid}字段即可知道编码包的编码系数。
+\section{E-TCP/NC模拟测试结果}
+我们比较了E-TCP/NC与TCP/NC、TCP-Reno在模拟丢包环境下的性能。
+\par
+先验证了自适应冗余算法对性能的改进。
+屏蔽E-TCP/NC的前向重传机制和补偿重传算法，
+固定TCP/NC的冗余度$R=1.3$，
+测试了$0 \sim 25\%$丢包率环境下E-TCP/NC，TCP/NC与TCP-Reno的吞吐率，
+如图\ref{fig:adap_redun}所示。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/adaptive_redundancy.eps}
+	\caption{TCP-Reno、TCP/NC与E-TCP/NC在不同丢包率下的对比}
+	\label{fig:adap_redun}
+\end{figure}
+\par
+可以看到，当丢包率超过$10\%$后，
+冗余度$R=1.3$已经无法很好地补偿链路中出现的丢包，
+TCP/NC的性能出现了很大的下降。
+而自适应冗余度算法让E-TCP/NC可以获取网络丢包情况，
+进而调整冗余度\emph{R}的大小，
+使得E-TCP/NC的吞吐率依然保持较高的水平。
+\par
+然后，我们固定丢包率为$15\%$，
+编码窗口为5，
+测试解码端解码矩阵缺失报文个数$mat\_loss$的变化情况。
+$mat\_loss$表示解码矩阵中还未解出的报文个数，
+即第\ref{sec:loss}小节中提到的\emph{loss}值。
+测试结果如图\ref{fig:buchang}所示。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/buchang.eps}
+	\caption{TCP/NC与E-TCP/NC解码矩阵缺失报文个数对比}
+	\label{fig:buchang}
+\end{figure}
+\par
+图\ref{fig:buchang}中展示了利用iperf测试，
+传输前1300个报文时，\emph{Mat\_loss}的变化情况。
+TCP/NC与E-TCP/NC均固定编码冗余度$R=1.4$。
+可以看到，相比TCP/NC，E-TCP/NC没有出现长时间、大规模的积包现象。
+可以预见，当编码窗口更大时，丢包更严重时，
+标准TCP/NC的积包现象会更严重，
+导致解码时延更大，
+不利于无人机视频传输这种实时应用。
 \section{无人机真实网络环境测试}
 \subsection{无人机实验平台搭建}
-本文搭建真实无人机实验平台，
+本文搭建真实无人机视频传输实验平台，
 以验证E-TCP/NC对无人机视频传输性能的提升。
-采用Pixhawk开源飞控和“EX700天际”机架搭建的无人机平台如图。
-\subsection{天地iperf测试结果}
-\subsection{E-TCP/NC在无人机视频传输实测效果}
-\subsection{性能分析}
+采用Pixhawk开源飞控和“EX700天际”机架搭建的无人机平台如图\ref{fig:uavpingtai}。
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/uavplatform.eps}
+	\caption{无人机实验平台}
+	\label{fig:uavpingtai}
+\end{figure}
+
+
+
+测试拓扑如图\ref{fig:uav}所示。
+无人机机载Raspberry Pi平台，
+Raspberry Pi上部署了E-TCP/NC，
+机载摄像头采用Omnivision 5647 500万像素摄像头，
+CSI接口与Raspberry Pi通信。
+采用mjpg-streamer采集视频，步骤如代码\ref{code:steps}所示。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/uav.eps}
+	\caption{E-TCP/NC无人机视频传输测试拓扑}
+	\label{fig:uav}
+\end{figure}
+\par
+\par
+地面客户端播放器采用VLC播放器，播放地址为\emph{http://192.168.1.100:8090}，其中\emph{192.168.1.100}为Raspberry Pi的IP地址。
+\begin{lstlisting}[float,caption=摄像头配置步骤,label={code:steps},language={bash}]
+sudo apt-get install subversion
+sudo apt-get install libv4l-dev
+sudo apt-get install libjpeg8-dev
+svn co https://mjpg-streamer.svn.sourceforge.net/svnroot/mjpg-streamer mjpg-streamer
+cd mjpg-streamer/mjpg-streamer
+make USE_LIBV4L2=true clean all
+make DESTDIR=/usr install
+mjpg_streamer -i "/usr/lib/input_uvc.so -d /dev/video0 -y -r 320x240 -f 15" -o "/usr/lib/output_http.so -p 8090 -w ./www"
+\end{lstlisting}
+
+\subsection{E-TCP/NC在无人机平台实测效果}
 \section{本章小结}
-为了在真实丢包环境中测试TCP/NC及其改进协议的性能，本文搭建了无人机测试环境。将部署了TCP/NC改进协议的Raspberry Pi搭载在无人机上，通过WIFI无线链路来与地面站通信。 
+为了在真实丢包环境中测试TCP/NC及其改进协议的性能，搭建了无人机测试环境。将部署了TCP/NC改进协议的Raspberry Pi搭载在无人机上，通过WIFI无线链路来与地面站通信。 
