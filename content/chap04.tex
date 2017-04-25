@@ -246,21 +246,17 @@ TCP/NC与E-TCP/NC均固定编码冗余度$R=1.4$。
 
 
 
-测试拓扑如图\ref{fig:uav}所示。
+%%测试拓扑如图\ref{fig:uav}所示。
 无人机机载Raspberry Pi平台，
 Raspberry Pi上部署了E-TCP/NC，
 机载摄像头采用Omnivision 5647 500万像素摄像头，
 CSI接口与Raspberry Pi通信。
 采用mjpg-streamer采集视频，步骤如代码\ref{code:steps}所示。
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=4in]{figures/uav.eps}
-	\caption{E-TCP/NC无人机视频传输测试拓扑}
-	\label{fig:uav}
-\end{figure}
-\par
+
 \par
 地面客户端播放器采用VLC播放器，播放地址为\emph{http://192.168.1.100:8090}，其中\emph{192.168.1.100}为Raspberry Pi的IP地址。
+%实测效果图如图\ref{fig:feiji}。
+
 \begin{lstlisting}[float,caption=摄像头配置步骤,label={code:steps},language={bash}]
 sudo apt-get install subversion
 sudo apt-get install libv4l-dev
@@ -271,7 +267,54 @@ make USE_LIBV4L2=true clean all
 make DESTDIR=/usr install
 mjpg_streamer -i "/usr/lib/input_uvc.so -d /dev/video0 -y -r 320x240 -f 15" -o "/usr/lib/output_http.so -p 8090 -w ./www"
 \end{lstlisting}
-
 \subsection{E-TCP/NC在无人机平台实测效果}
+考虑到Raspberry Pi的硬件水平限制了TCP/NC的吞吐率，
+本文以编码冗余度$R=1$的TCP/NC作为参考对象，
+验证E-TCP/NC的性能。
+换句话说，最大程度上去掉会对测试结果产生影响的硬件瓶颈。
+\par
+先利用iperf测试无人机飞行环境下与地面终端之间的吞吐率，
+测试方案图如图\ref{fig:uav}。
+控制无人机绕着三棵树飞行，
+通过WIFI与地面PC通信。
+取6次测试结果，均为60秒内的平均吞吐率，如表\ref{tab:uav}。
+6次的测试结果均表明E-TCP/NC的传输性能均优于冗余度$R=1$的TCP/NC。
+\begin{table}[htp]
+	\centering
+	\caption{无人机平台iperf测试结果(Mbps)}
+	\label{tab:uav}
+	\begin{tabular}{lllllll}
+		\toprule
+		 &Test1&Test2&Test3&Test4&Test5&Test6\tabularnewline
+		\midrule
+		TCP/NC(R=1)		&7.6&6.4&8.3&7.2&9.2&7.9\tabularnewline
+		E-TCP/NC		&10.1&11.2&13.2&11.7&10.8&12.4\tabularnewline
+		\bottomrule
+	\end{tabular}
+\end{table}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=4in]{figures/ceshiluxian.eps}
+	\caption{E-TCP/NC无人机视频传输测试方案}
+	\label{fig:uav}
+\end{figure}
+
+\par
+接着对视频传输进行测试。如代码\ref{code:steps}所示，固定采集视频分辨率为320X240，采用RTSP协议推送视频流。可以发现采用冗余度$R=1$的TCP/NC协议时，视频传输中间出现了明显的卡顿，如图\ref{fig:feiji1}所示。而采用了E-TCP/NC协议时，整个过程，视频都流畅传输，如图\ref{fig:feiji2}所示。
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/2.jpg}
+	\caption{TCP/NC(R=1)无人机视频传输测试效果图}
+	\label{fig:feiji1}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=6in]{figures/3.jpg}
+	\caption{E-TCP/NC无人机视频传输测试效果图}
+	\label{fig:feiji2}
+\end{figure}
+\par
+图\ref{fig:feiji1}和图\ref{fig:feiji2}表示，E-TCP/NC对无人机视频传输有较大的性能提升。
 \section{本章小结}
-为了在真实丢包环境中测试TCP/NC及其改进协议的性能，搭建了无人机测试环境。将部署了TCP/NC改进协议的Raspberry Pi搭载在无人机上，通过WIFI无线链路来与地面站通信。 
+为了在真实丢包环境中测试TCP/NC及其改进协议的性能，本章搭建了无人机测试环境。将部署了E-TCP/NC改进协议的Raspberry Pi搭载在无人机上，通过WIFI无线链路来与地面站通信。部署视频采集系统，验证E-TCP/NC对无人机视频传输性能的提升。
