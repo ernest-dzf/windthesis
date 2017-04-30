@@ -43,6 +43,8 @@
 %\algrenewcommand{\algorithmiccomment}[1]{\hskip3em $\rightarrow$ #1}
 \algrenewcommand{\algorithmiccomment}[1]{ $//$ #1}
 
+\newtheorem{myDef}{定义}[section]
+
 \usepackage{listings}
 \renewcommand\lstlistingname{代码}
 \renewcommand\lstlistlistingname{代码}
@@ -77,10 +79,11 @@
 
 \graphicspath{{figures/}}
 
-\title{Towards zero loss for TCP in wireless networks}
+%\title{Towards zero loss for TCP in wireless networks}
+\title{TCP/NC的一种补偿重传机制}
 %\author{唐磊}
 \author[董泽锋]{~\vskip 20pt学~~~~~~生：董~~~~~泽~~~~~锋\vskip 5pt 指导教师：陈~~庆~~春~~教授}
-\institute[西南交通大学~信息学院]{\small \vskip 58pt信息编码与传输重点实验室 }
+\institute[西南交通大学~信息学院]{\small \vskip 68pt信息编码与传输重点实验室 }
 %\date{2015-06-07}
 \date{\small \vskip -17pt二〇一七年四月}
 %\date{\today}
@@ -93,7 +96,7 @@
 \vspace{-43mm}
 \begin{figure}[htbp]
   \begin{center}
-	\includegraphics[width=0.14\linewidth]{swjtu.eps}
+	\includegraphics[width=0.14\linewidth]{swjtu_logo.png}
   \end{center}
 \end{figure}
 %\beign{picture}(1,1)
@@ -108,12 +111,16 @@
     \tableofcontents[sections={<1-5>}]
   %\end{multicols}
     \note{
-      我将按照下面如下的次序来介绍本人的工作，首先是课题背景和相关工作，然后介绍凸包围体生成算法和基于凸包围体的碰撞检测算法，最后进行总结。
+    	
+    	本次报告的内容按如下结构展开。
+    	首先是接收TCP/NC的相关背景，
+    	然后是
     }
   }
 
+	%%在每一节（或小节前增加目录）
   \AtBeginSubsection[] {
-  \frame<handout:0> {
+  \frame<handout:0> {%%handout:0表示只在手稿中出现
   \frametitle{目录}
   \tableofcontents[current,currentsubsection,sections={<1-5>}]
     }
@@ -121,6 +128,7 @@
   }
 
   \include{ppt01}
+  \include{ppt02}
   \include{ppt04}
 
 \end{document}
