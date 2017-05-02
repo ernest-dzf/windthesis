@@ -79,7 +79,7 @@
 			我们可以得到在目的节点$t$和$u$的全局转移矩阵为：
 		\end{column}
 		\begin{column}{0.4\textwidth}
-			\vspace{-1em}
+			\vspace{-1.5em}
 			\begin{figure}
 				\includegraphics[height=3cm]{../figures/zhuanyi.eps}
 				\caption{标注了转移矩阵的蝶形网络}
@@ -119,6 +119,7 @@
 	将网络编码应用于提升有损链路的吞吐率，
 	其应用方式主要有两种：Batch Coding和Pipeline Coding。
 	\begin{block}{Batch Coding}
+		\footnotesize
 		定义\emph{generation}为数据包的集合，作为编解码的整体。
 		源节点和网络中的中间节点在同一个\emph{generation}上进行编码，
 		目的节点只有在收到足够多的编码报文后，
@@ -131,6 +132,7 @@
 	\end{equation}
 	\newpage
 	\begin{block}{Pipeline Coding}
+		\footnotesize
 		无需等待一个\emph{generation}满秩，
 		每当一个数据报文来之后，
 		就会产生一个编码包。
@@ -236,7 +238,7 @@
 	其关键点有：
 	\begin{block}{TCP/NC关键点}
 		\begin{enumerate}
-			\item 在发送端的TCP层和NC层插入一个网络编码层，
+			\item 在发送端的TCP层和IP层插入一个网络编码层，
 			在编码层对数据包进行线性网络编码。
 			\item 利用\emph{ACK On degree of freedom}的概念，
 			重新定义TCP中ACK的概念。
@@ -249,13 +251,14 @@
 \frame{
 	\frametitle{TCP/NC框图}
 	\begin{columns}[onlytextwidth]
-		\hspace{-3.0em}
+		\hspace{-4em}
 		\begin{column}{0.45\textwidth}
+			\vspace{-1em}
 			\begin{figure}
-      		\includegraphics[height=5cm]{../figures/tcpnc.eps}
-      		\caption{TCP/NC结构框图}
-      		\label{fig:tcpnc}
-      	\end{figure}
+      			\includegraphics[height=5cm]{../figures/tcpnc.eps}
+      			\caption{TCP/NC结构框图}
+      			\label{fig:tcpnc}
+    		\end{figure}
       	\end{column}
       	\begin{column}{0.65\textwidth}
       		\footnotesize
@@ -348,29 +351,29 @@
 \end{frame}
 
 
-\frame{
-\frametitle{传输时延 }
-\vspace{-1em}
-\begin{myDef}[传输时延]\label{def:shiyan}
-   	如果源节点产生数据报文$pkt_i$的时间为$t_{s_i}$，
-   	目的节点将数据报文$pkt_i$交付给上层时间为$t_{r_i}$，
-   	定义数据包的传输时延为$delay_i=t_{r_i} - t_{s_i}$。
-\end{myDef}
-\begin{block}{解码导致的时延}
-  	TCP/NC的基本思想是利用发送端的编码将链路的丢包问题后延，
-  	当发送端的冗余包足够弥补链路丢包后，
-  	丢包就被掩盖。
-  	带来的问题是数据包的传输时延变大。
-  	以图\ref{fig:codingexp}为例，
-  	如果补偿$SEQ=2$的冗余包为$SEQ=7$，
-  	那么$p_2$需要等到$SEQ=7$才能被接收端的NC层交付给上层TCP。
-  	那么$p_2$的传输时延为$delay_2 = t_{r_7} - t_{s_2}$。
-   \end{block}
-
-\note{
-(介绍PPT后)，本文后面的实验就是基于BVH的，不可变形的三角网格。//现在研究较多的是连续的可变形的碰撞检测布料模拟头发模拟等。
-}
-}
+%\frame{
+%\frametitle{传输时延 }
+%\vspace{-1em}
+%\begin{myDef}[传输时延]\label{def:shiyan}
+%   	如果源节点产生数据报文$pkt_i$的时间为$t_{s_i}$，
+%   	目的节点将数据报文$pkt_i$交付给上层时间为$t_{r_i}$，
+%   	定义数据包的传输时延为$delay_i=t_{r_i} - t_{s_i}$。
+%\end{myDef}
+%\begin{block}{解码导致的时延}
+%  	TCP/NC的基本思想是利用发送端的编码将链路的丢包问题后延，
+%  	当发送端的冗余包足够弥补链路丢包后，
+%  	丢包就被掩盖。
+%  	带来的问题是数据包的传输时延变大。
+%  	以图\ref{fig:codingexp}为例，
+%  	如果补偿$SEQ=2$的冗余包为$SEQ=7$，
+%  	那么$p_2$需要等到$SEQ=7$才能被接收端的NC层交付给上层TCP。
+%  	那么$p_2$的传输时延为$delay_2 = t_{r_7} - t_{s_2}$。
+%   \end{block}
+%
+%\note{
+%(介绍PPT后)，本文后面的实验就是基于BVH的，不可变形的三角网格。//现在研究较多的是连续的可变形的碰撞检测布料模拟头发模拟等。
+%}
+%}
 %
 %  \frame{
 %    \frametitle{基于~BVH~的碰撞检测算法}

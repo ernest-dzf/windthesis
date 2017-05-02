@@ -35,7 +35,7 @@
 				\label{tab:youxianyucheng}
 				\begin{tabular}{l|llll}
 					\toprule
-					.&0&1&A&B\cr
+					$\cdot$ &0&1&A&B\cr
 					\midrule
 					0&0&0&0&0\cr
 					1&0&1&A&B\cr
@@ -143,7 +143,7 @@
 			然后对数据包进行编码。
 		\end{column}
 		\begin{column}{0.4\textwidth}
-			\vspace{-1.5em}
+			\vspace{-2em}
 			\begin{figure}
 				\includegraphics[height=4cm]{../figures/skbuff.eps}
 				\caption{skbuff结构}
@@ -159,8 +159,8 @@
 	\frametitle{NC层头部}
 	\begin{columns}
 		\begin{column}{0.4\textwidth}
-			发送端需要给编码得到的编码包添加NC头部，
-			包括编码系数等信息，接收端利用这些信息进行解码。
+			发送端需要给产生的编码包添加NC头部，
+			其中包含编码系数等信息，接收端利用这些信息进行解码。
 			图\ref{fig:codingMechanism}为NC报文的头部。
 		\end{column}
 		\begin{column}{0.6\textwidth}
@@ -171,162 +171,121 @@
 			\end{figure}
 		\end{column}
 	\end{columns}
+	\note{
+	}
 \end{frame}
 %%编码端
 \begin{frame}
-	\frametitle{编码步骤}
-	\renewcommand{\algorithmcfname}{算法}
-	\begin{algorithm}
-		\caption{对数据包进行编码} 
-		\label{algo:bianma}
-		\SetKwInOut{Input}{\textbf{输入}}\SetKwInOut{Output}{\textbf{输出}}
-		\Input{\\
-			冗余度因子 $R$;\\
-			编码缓存双向链表 $sk\_buff\_head$;\\
-			冗余度残留系数 $NUM$;\\
-			编码窗口 $TCPNC\_CODE\_WND$;
-		}
-		\Output{\\
-			编码报文链表 $sk\_buff\_ret$
-		}
-		$NUM \leftarrow NUM+R$;\\
-		\While{$NUM \ge 1$}  
-		{  
-			从$sk\_buff\_head$表头开始往后遍历$TCPNC\_CODE\_WND$个报文;\\
-			在$GF\left(2^8\right)$上生成$TCPNC\_CODE\_WND$个系数;\\
-			根据系数和原始数据包计算出编码包;\\
-			给编码报文添加NC头部;\\
-			将编码包加入到$sk\_buff\_ret$链表;\\
-			$NUM \leftarrow NUM-1$;
-		}
-		\Return \ $sk\_buff\_ret$;
-	\end{algorithm}
+	\frametitle{编码}
+	\begin{columns}
+		\begin{column}{0.4\textwidth}
+			发送端的NC层维护了一个\emph{sk\_buff}的链表\emph{sk\_buff\_head}，
+			存放从TCP层下来的数据包。
+			此链表也作为发送端的编码缓存，
+			其插入操作发生于有数据包文从TCP层下来时；
+			删除操作发生于收到接收端的NC层的ACK报文时。
+			编解码步骤如右图。
+		\end{column}
+		\begin{column}{0.6\textwidth}
+			\vspace{-2.5em}
+			\begin{figure}
+				\includegraphics[height=5.5cm]{figures/encoding.jpg}
+			\end{figure}
+		\end{column}
+	\end{columns}
 \end{frame}
 
-%\subsection{解码矩阵}
-\frame{
-	\frametitle{解码矩阵}
-\begin{columns}[onlytextwidth]
-	%%\vspace{5em}
-	\hspace{-2.0em}
-	\begin{column}{0.55\textwidth}
-		%%\vspace{-4em}
-		\begin{figure}
-			\includegraphics[height=3cm]{figures/matrix.eps}
-			\caption{解码矩阵示例}
-			\label{fig:jiema}
-		\end{figure}
-	\end{column}
-	\hspace{0.5em}
-	\begin{column}{0.55\textwidth}
-		\footnotesize
-		\begin{block}{解码矩阵}
-		图\ref{fig:jiema}表示接收端的解码矩阵的一个示例。
-		编码报文$c_3$丢失，$c_4$正确收到，$c_5$又丢失。
-		可以看到，接收端可以解码出$p_1$和$p_2$，
-		看到（see）$p_3$和$p_4$，
-		无法解出$p_3 \sim p_6$。
-		\end{block}
-%	\begin{block}{信息}
-%		
-%		\end{block}
-	\end{column}
-\end{columns}
-%\vspace{2em}
-以图\ref{fig:jiema}为例，
-解码矩阵还需要2个由$p_3$到$p_6$组成的编码包即可解码出$p_3$和$p_6$。
-如果能让发送端了解到这个信息，
-发送端在下一回合发送过程中，
-主动额外地多发相关的编码包，
-就可以提前解出$p_3 \sim p_6$，
-而无需等到下一次根据冗余度发出的冗余包。
-}
-%\subsection{NC头部设计}
-\frame{
-	\frametitle{NC头部结构}
-	\vspace{-2em}
+%%解码
+\begin{frame}
+	\frametitle{解码}
+\end{frame}
+
+%%接收窗口
+\begin{frame}
+	\frametitle{接收窗口}
+	考虑到NC层提前确认了一些数据包，
+	在接收端，我们需要对发出去的ACK报文的接收窗口值作出修改。
 	\begin{figure}
-	\hspace{-1.5em}
-		%\centering
-		%%\hspace{-em}
-		\includegraphics[height=2.8cm]{figures/newheader.eps}
-		\caption{新NC头部设计}
-		\label{fig:ncheader}
-	\end{figure}
-图\ref{fig:ncheader}展示的NC头部中添加了\emph{Pid}和\emph{Pid-reply}两个字段。
-\emph{Pid}表示编码报文的编号；
-如果此报文为ACK报文的话，
-\emph{Pid-reply}表示这个ACK报文是由编号为\emph{Pid-reply}的报文激发的。
-}
-%\subsection{反馈重传流程设计}
-\frame{
-	\frametitle{获码矩阵信息}
-	\begin{block}{发送端}
-		对于发出去的每个编码包，
-		若其编号为\emph{Pid}，
-		记录编号为\emph{Pid}的编码包由哪几个原始数据包组成，
-		以图\ref{fig:codingexp}为例，
-		\emph{Pid=1}的编码包由$p_1$、$p_2$、$p_3$和$p_4$组成。
-		\\
-	\end{block}
-	\begin{block}{接收端}
-		接收端在发出去的每个ACK报文中都会填写NC头部的\emph{Pid-reply}字段，
-		表示此ACK报文是由发送端的编号为\emph{Pid-reply}的编码报文激发的。
-	\end{block}
-}
-%\frame[allowframebreaks]{
-\begin{frame}
-	\frametitle{获取接收端解码矩阵信息}
-	%\vspace{-2em}
-	\begin{myDef}[矩阵可解状态]\label{def:kejie}
-		假定接收端收到的序号最大的报文为$p_j$，
-		已经确认的序号最大的报文为$p_i$。
-		如果$i=j$，那么就说接收端解码矩阵为可解状态。
-	\end{myDef}
-发送端的处理过程如下：
-	\begin{block}{步骤}
-		%\footnotesize
-		\begin{enumerate}[<+-|alert@+>]
-			\item 提取\emph{Pid-reply}域，
-			罗列值为\emph{Pid-reply}的编码包的所有原始数据包$p_i \sim p_j(i \le j)$；
-			\item 如果ACK报文的确认序号$ACK=p_k$，
-			那么可知接收端解码矩阵在收到编号为\emph{Pid=Pid-reply}的编码报文时，
-			缺失$j-k+1$个编码包才可以变为可解状态；
-			%\framebreak
-
-		\end{enumerate}
-	\end{block}
-%}
-\end{frame}
-
-
-\begin{frame}
-		\frametitle{获取接收端解码矩阵信息}
-		\begin{block}{步骤（ 接上页）}
-		\begin{enumerate}[<+-|alert@+>]
-	\addtocounter{enumi}{2}
-				\item 更新\emph{loss}和\emph{last\_loss}变量，
-	其中\emph{loss}表示接收端解码矩阵变为可解状态所需的组合包个数，\emph{last\_loss}表示\emph{loss}上一次的值。
-	\item  计算当前时间$T_{now}$和上一次补偿重传的时间$T_{last}$的差值是否超过RTO。
-	如果超过，那么重传当前编码缓存窗口的前\emph{loss}个报文；
-	如果未超过，比较\emph{loss}的\emph{last\_loss}的值，
-	如果$loss \le last\_loss$，那么不进行补偿重传，
-	如果$loss > last\_loss$，说明在$T_{last}$到$T_{now}$这段时间又有报文丢失，
-	那么就重传编码缓存窗口的前$loss-last\_loss$个报文。
-		\end{enumerate}
-		\end{block}
-\end{frame}
-
-\begin{frame}
-	\frametitle{流程图}
-	\begin{figure}
-		\hspace{-1.5em}
-		%\centering
-		%%\hspace{-em}
-		\includegraphics[height=5cm]{../figures/bccc.eps}
-		\caption{补偿重传流程图}
-		\label{fig:buchang}
+		\includegraphics[height=4cm]{../figures/rcvwnd.eps}
+		\label{fig:rcvwnd}
+		\caption{接收窗口设定}
 	\end{figure}
 \end{frame}
 
-\section{E-TCP/NC}
+\subsection{测试结果和结论}
+\begin{frame}[allowframebreaks]
+	\frametitle{测试}
+	\begin{columns}
+		\begin{column}{0.4\textwidth}
+			\begin{figure}
+				\includegraphics[height=4cm]{../figures/tuopu.eps}
+				\label{fig:tuopu}
+				\caption{测试拓扑}
+			\end{figure}
+		\end{column}
+		\begin{column}{0.6\textwidth}
+			\vspace{-1.5em}
+			\begin{table}[htp]
+				\centering
+				\caption{测试环境参数}
+				\label{tab:ceshicanshu}
+				\begin{tabular}{ll}
+					\toprule
+					参数名称&参数值\tabularnewline
+					\midrule
+					机型		&Raspberry Pi 2 Model B\tabularnewline
+					CPU		&900MHz Cortex-A7\tabularnewline
+					RAM			&1G\tabularnewline
+					以太网卡 	&10M/100M\tabularnewline
+					操作系统 &Debian\tabularnewline
+					内核版本 &Linux 3.18\tabularnewline
+					TCP协议版本 &TCP-Reno\tabularnewline
+					测试工具 &iperf\tabularnewline
+					测试时间 &60秒\tabularnewline
+					\bottomrule
+				\end{tabular}
+			\end{table}
+		\end{column}
+	\end{columns}
+	\newpage
+	固定链路丢包率为$5\%$,
+	测试冗余度对吞吐率的影响如图\ref{fig:throughput2redundancy}。
+	我们对不同丢包率下TCP和TCP/NC的性能进行了对比测试，
+	如图\ref{fig:throughput2loss}所示，
+	其中TCP/NC的吞吐率都为最优吞吐率。
+	\begin{columns}
+		\begin{column}{0.5\textwidth}
+			\begin{figure}
+				\includegraphics[height=3.5cm]{../figures/redundancy.eps}
+				\label{fig:throughput2redundancy}
+				\caption{吞吐率-冗余度}
+			\end{figure}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\begin{figure}
+				\includegraphics[height=3.5cm]{../figures/throughput2lossrate.eps}
+				\label{fig:throughput2loss}
+				\caption{吞吐率-丢包率}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
+
+\begin{frame}
+	\frametitle{结论}
+\end{frame}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
