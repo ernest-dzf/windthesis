@@ -138,7 +138,7 @@ c = \sum\limits_{j = 1}^k {{e_j}{p_{i \times k + j}}}
 	\end{array}} \right]
 \end{equation}
 \par
-由于每个编码数据包都是同一个\emph{generation}的数据包的线性组合，在源节点就引入了一个延时。换句话说，同一个\emph{generation}里面前面的报文需要等后面的报文，直到这个\emph{generation}满秩后，才可进行编码。在目的节点处，同一个\emph{generation}的报文，要么都没解码，要么一个都解不出。
+由于每个编码数据包都是同一个\emph{generation}的数据包的线性组合，在源节点就引入了一个延时。换句话说，同一个\emph{generation}里面前面的报文需要等后面的报文，直到这个\emph{generation}满秩后，才可进行编码。在目的节点处，同一个\emph{generation}的报文，要么都解码，要么一个都解不出。
 \par
 为了刻画Batch Coding整个的时延，我们定义“delay”如下：接收端的应用收到报文的时间和源节点的应用产生报文的时间的差值。$t_{i}$表示源节点产生{\textbf{data}}\textsubscript{\textbf{i}}的时间，$t_{ci}$表示第$i$个编码包被发出去的时间。假定报文传输过程中的处理时延、传输时延、传播时延和排队时延都是常数，$d_{n}$表示网络中出现的时延的总和，$d_{c}$表示接收端的解码过程的时延，也为一个常数。假定一个\emph{generation}还有$k$个数据包，那么在无损信道中，传送数据包{\textbf{data}}\textsubscript{\textbf{i}}的时延为：
 \begin{equation}\label{eq26}

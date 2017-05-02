@@ -1,15 +1,20 @@
-\documentclass[UTF8, xcolor=table]{beamer}
+\documentclass[UTF8, xcolor=table,aspectratio=169]{beamer}
 %\usepackage{fontspec}
 %\setsansfont{宋体}
 \usepackage[BoldFont,SlantFont]{xeCJK}
-\setCJKmainfont[BoldFont={SimSun},ItalicFont={SimSun}]{SimSun}
+\setCJKmainfont[BoldFont={SimSun},ItalicFont={KaiTi}]{SimSun}
 \usepackage{latexsym,amssymb,amsmath,amsbsy,amsopn,amstext,xcolor,multicol}
 \usepackage{graphicx,wrapfig,fancybox}
 \usepackage{pgf,pgfarrows,pgfnodes,pgfautomata,pgfheaps,pgfshade}
 \usepackage{thubeamer}
+%\usepackage{subfig}
 %\usepackage[backend=bibtex,style=IEEE,sorting=none]{biblatex} % [参考文献格式](https://www.sharelatex.com/blog/2013/07/31/getting-started-with-biblatex.html)
 \usepackage[backend=bibtex,sorting=none]{biblatex} % [参考文献格式](https://www.sharelatex.com/blog/2013/07/31/getting-started-with-biblatex.html) %mac IEEE not found
+
+%\usepackage{paralist}
+%\usepackage{tabularx}
 \usepackage{array}
+\usepackage{threeparttable}
 \usepackage{bm}
 \usepackage{caption}
 \usepackage[caption=false,font=scriptsize]{subfig}
@@ -42,12 +47,15 @@
 \renewcommand{\algorithmicensure}{\textbf{输出:}} %%UseOutput in the format of Algorithm
 %\algrenewcommand{\algorithmiccomment}[1]{\hskip3em $\rightarrow$ #1}
 \algrenewcommand{\algorithmiccomment}[1]{ $//$ #1}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
 
 \newtheorem{myDef}{定义}[section]
-
+\newtheorem{mytheorem}{定理}[section]
 \usepackage{listings}
 \renewcommand\lstlistingname{代码}
 \renewcommand\lstlistlistingname{代码}
+
 
 \lstset{framexleftmargin=1.4em,
         xleftmargin=1.8em,
@@ -79,57 +87,52 @@
 
 \graphicspath{{figures/}}
 
-%\title{Towards zero loss for TCP in wireless networks}
-\title{TCP/NC的一种补偿重传机制}
-%\author{唐磊}
-\author[董泽锋]{~\vskip 20pt学~~~~~~生：董~~~~~泽~~~~~锋\vskip 5pt 指导教师：陈~~庆~~春~~教授}
-\institute[西南交通大学~信息学院]{\small \vskip 68pt信息编码与传输重点实验室 }
-%\date{2015-06-07}
-\date{\small \vskip -17pt二〇一七年四月}
-%\date{\today}
+\title{面向无人机视频传输的增强传输技术研究与实现}
+\author[董泽锋]{(申请西南交通大学工学硕士学位论文答辩报告)
+	\vskip 7pt学~~~~~生：董~~~~~泽~~~~~锋
+	\vskip 5pt 指导教师：陈~庆~春~教授}
+\institute[西南交通大学~信息学院]
+{\small \vskip 42pt信息编码与传输重点实验室 }
+\date{\small \vskip -17pt二〇一七年五月}
 
 
-
+%%第一页，封面
 \frame{
-\vspace{-15mm}
-\titlepage
-\vspace{-43mm}
-\begin{figure}[htbp]
-  \begin{center}
-	\includegraphics[width=0.14\linewidth]{swjtu_logo.png}
-  \end{center}
-\end{figure}
-%\beign{picture}(1,1)
-%\put(6,8){\includegraphics[width=0.15\linewidth]{Tsinghua_University_Logo.eps}}
-%\end{picture}
+	\vspace{-12mm}
+	\titlepage
+	\vspace{-53mm}
+	\begin{figure}[htbp]
+		\vskip 30pt
+		\begin{center}
+			\includegraphics[width=0.13\linewidth]{swjtu_logo.png}
+		\end{center}
+	\end{figure}
 }
 
-  \section*{目录}
-  \frame {
-    \frametitle{\secname}
-   % \begin{multicols}{2}
-    \tableofcontents[sections={<1-5>}]
-  %\end{multicols}
-    \note{
-    	
-    	本次报告的内容按如下结构展开。
-    	首先是接收TCP/NC的相关背景，
-    	然后是
+%%第二页，本次答辩ppt目录
+\section*{目录}
+\frame {
+	\frametitle{\secname}
+	% \begin{multicols}{2}
+	\tableofcontents[sections={<1-5>}]
+	%\end{multicols}
+    \note{	
     }
-  }
+}
 
-	%%在每一节（或小节前增加目录）
-  \AtBeginSubsection[] {
-  \frame<handout:0> {%%handout:0表示只在手稿中出现
-  \frametitle{目录}
-  \tableofcontents[current,currentsubsection,sections={<1-5>}]
-    }
-    \addtocounter{framenumber}{-1}  %目录页不计算页码
-  }
+%%在每一节（或小节前增加目录）
+\AtBeginSubsection[] {
+	\frame<handout:0> {%%handout:0表示只在手稿中出现
+		\frametitle{目录}
+		\tableofcontents[current,currentsubsection,sections={<1-5>}]
+	}
+\addtocounter{framenumber}{-1}  %目录页不计算页码
+}
 
-  \include{ppt01}
-  \include{ppt02}
-  \include{ppt04}
+\include{ppt01}
+\include{ppt02}
+\include{ppt03}
+\include{ppt04}
 
 \end{document}
 
