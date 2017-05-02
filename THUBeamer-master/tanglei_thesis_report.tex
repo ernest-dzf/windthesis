@@ -113,9 +113,9 @@
 \section*{目录}
 \frame {
 	\frametitle{\secname}
-	% \begin{multicols}{2}
+	\begin{multicols}{2}
 	\tableofcontents[sections={<1-5>}]
-	%\end{multicols}
+	\end{multicols}
     \note{	
     }
 }
@@ -124,7 +124,10 @@
 \AtBeginSubsection[] {
 	\frame<handout:0> {%%handout:0表示只在手稿中出现
 		\frametitle{目录}
-		\tableofcontents[current,currentsubsection,sections={<1-5>}]
+		\begin{multicols}{2}
+			\tableofcontents[current,currentsubsection,sections={<1-5>}]
+		\end{multicols}
+		
 	}
 \addtocounter{framenumber}{-1}  %目录页不计算页码
 }
