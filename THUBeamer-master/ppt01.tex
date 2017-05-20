@@ -1,50 +1,29 @@
-\section{背景}
-\subsection{无人机}
-%%无人机行业发展
-\frame {
-	\frametitle{无人机行业发展}
+\section{绪论}
+
+\subsection{背景}
+%%无人机航拍
+\begin{frame}
+	\frametitle{无人机航拍}
 	近几年国内无人机市场规模飞速发展，
 	兴起了一批如大疆科技、零度智控等科技企业。
-	\begin{figure}
-		\includegraphics[height=4cm]{figures/uavshichang.eps}
-		\caption{中国无人机市场规模}
-		\label{fig:uavshichang}
-	\end{figure}
-}
-%%无人机航拍
-\begin{frame}[t]
-	\frametitle{无人机航拍}
-	\begin{columns}[t,onlytextwidth]
-		%%左边列
-		\begin{column}{0.6\textwidth}
-		无人机一项重要应用是航拍。
-		航拍所采用的数据传输方案很大程度上影响用户的体验。
-		\vspace{1em}
-		\begin{block}{视频传输方案}
-			\footnotesize
-			\begin{enumerate}[(1)]
-				\item 专有数据链，如DJI的Lightbridge
-				\item 基于TCP/IP的网络视频传输
-			\end{enumerate}
-		\end{block}
-		%%右边列
-		\end{column}
-		\hspace{0.5em}
-		\begin{column}{0.4\textwidth}
-			\vspace{-3em}
-			\begin{figure}
-				\includegraphics[height=4.2cm]{figures/uavhangpai.eps}
-			\end{figure}
-		\end{column}	
-	\end{columns}
+	\\
+	无人机一项重要应用是航拍。
+	航拍所采用的数据传输方案很大程度上影响用户的体验。
+	\vspace{1em}
+	\begin{block}{视频传输方案}
+		\footnotesize
+		\begin{enumerate}[(1)]
+			\item 专有数据链，如DJI的Lightbridge
+			\item 基于TCP/IP的网络视频传输
+		\end{enumerate}
+	\end{block}
 	%%新的一行
 	\vspace{1.5em}
 	两种传输方案都有各自的优缺点。
 \end{frame}
 %%两种视频传输方案优缺点
-\frame {
+\begin{frame}
 	\frametitle{两种视频传输方案优缺点}
-	
 	\begin{columns}[t]
 		%%左边列
 		
@@ -73,21 +52,15 @@
 				\begin{block}{缺点}
 				传输时延大，
 				容易受到无线链路中各种干扰，
-				{\color{red}{受限于TCP协议的缺点}}。
+				受限于TCP协议的缺点。
+				%{\color{red}{受限于TCP协议的缺点}}。
 				\end{block}
 			\end{block}
 		\end{column}
 	\end{columns}
-	\note{
-		本文也是着眼于TCP协议的缺点，
-		对TCP进行改进，
-		以提高基于TCP协议的无人机视频传输的性能
-	}
-}
-
-\subsection{TCP协议}
+\end{frame}
 %%TCP简单概述
-\frame {
+\begin{frame}
 	\frametitle{TCP简单概述}
 	\begin{block}{TCP协议}
 		\footnotesize
@@ -95,7 +68,7 @@
 		为了保证其可靠性，
 		设计了ACK确认机制，
 		流控机制，
-		拥塞控制算法。\\
+		拥塞控制算法\footfullcite{kurose2005computer}。
 		\begin{description}
 			\item[ACK机制] 对于发送端发出的报文，
 			如果接收端收到，那么会回复一个ACK报文进行累积确认。
@@ -108,10 +81,9 @@
 		\end{description}
 
 	\end{block}
-}
+\end{frame}
 %%使用TCP进行无人机视频传输存在的问题
-%\begin{frame}[t]
-\frame{
+\begin{frame}
 	\frametitle{使用TCP进行无人机视频传输存在的问题}
 	TCP协议最初是针对有线网络设计的，
 	考虑到有线网络中极低的误码率，
@@ -143,41 +115,51 @@
 		对于拥塞，如果将来将无人机接入到因特网中去，
 		将是一个需要考虑的问题。
 	}
-}
-%\end{frame}
+\end{frame}
 %%如何克服这些缺点？
-\begin{frame}[t,allowframebreaks]{如何克服这些缺点？}
+\begin{frame}
+	\frametitle{如何克服这些缺点？I}
 	在处理拥塞丢包和非拥塞丢包问题上，
 	有两种思想：掩盖非拥塞丢包和区分两种丢包。
-	\vspace{1em}
 	\begin{block}{掩盖非拥塞丢包}
 		\begin{description}
 			\footnotesize
 			\item[ARQ] 应用于无线网络的链路层，
 			但会和TCP的原有机制冲突，
-			导致乱序。
+			导致乱序\footfullcite{Balakrishnan1997}。
 			\item[FEC] 将前向纠错码和TCP结合，
 			如使用异或运算对前\emph{n}个报文编码。
-			\item[Indirect-TCP] 在有损信道入口处终止原始TCP连接，
+			\item[Indirect-TCP\footfullcite{Bakre1995I}] 在有损信道入口处终止原始TCP连接，
 			由TCP-agent接管报文。
-			\item[TCP-snoop] 保持端到端语义，保存经过的数据的拷贝，处理重复ACK。
+			\item[TCP-snoop\footfullcite{Balakrishnan1995Improving}] 保持端到端语义，保存经过的数据的拷贝，处理重复ACK。
 		\end{description}
 	\end{block}
+\end{frame}
+
+\begin{frame}
+	\frametitle{如何克服这些缺点？II}
 	\begin{block}{区分丢包}
 		\footnotesize
 		\begin{description}
-			\item[ELN] 接收端的MAC层可以检测出错，
+			\item[ELN\footfullcite{buchholcz2003explicit}] 接收端的MAC层可以检测出错，
 			将这一信息告知上层TCP，上层TCP会发送给对方一个报文告知出错。
 			\item[TCP-vegas] 让拥塞检测和丢包解耦。但其同样无法处理丢包引起的重传导致的时延过大问题。
-			\item[ECN] 显示拥塞控制标志位。利用IP首部的TOS字段。
+			\item[ECN\footfullcite{ramakrishnan2001rfc}] 显示拥塞控制标志位。利用IP首部的TOS字段。
 		\end{description}
 	\end{block}
 	Sundararajan等人提出TCP/NC\footfullcite{Sundararajan2009}，
 	在OSI协议栈的TCP层和IP层添加一个网络编码层。
 	在网络编码层对数据包进行冗余编码，
 	掩盖链路中出现的丢包。
-	\note{
-		TCP花费很长一段时间从丢包中恢复，
-		在介绍TCP/NC之前，
-		先简要介绍一下网络编码的相关原理。}
+\end{frame}
+
+\subsection{本文主要工作}
+\begin{frame}
+	\frametitle{本文主要工作}
+	\begin{enumerate}
+		\item 分析基于TCP协议的无人机视频传输面临的问题。
+		\item 介绍网络编码相关理论，及将网络编码应用于提高网络吞吐率、鲁棒性的相关工作。重点分析了编码TCP协议的原理、优势。
+		\item 设计实现编码TCP协议，并将其部署于嵌入式板子Raspberry Pi上，测试分析其性能。
+		\item 针对编码TCP存在的问题，对其作出若干改进，以更好地适应无人机视频传输环境。
+	\end{enumerate}
 \end{frame}

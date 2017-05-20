@@ -5,40 +5,12 @@
 % 英文摘要输入区
 \eabstract
 {
-	Unmanned Aerial Vehicles(UAVs) generally work in outdoor airspace, 
-	with the characteristics of high mobility,
-	which determines that it's often faced with large-scale fading channel environment. 
-	Packets corrupt and drop frequently.
-	Therefore, UAV video transmission based on the transport layer protocol(TCP) is faced with the problem of limited throughput and large latency. 
-	These problems are largely due to the design of the TCP itself.
+Unmanned Aerial Vehicles (UAVs) generally work in outdoor airspace with the high mobility characteristics, which makes the associated transmission always experience large-scale fading, transmission errors and packet loss. Therefore, UAV video transmission based on the Transport Layer Protocol (TCP) will face up with the problem of limited transmission throughput and prominent transmission latency. However, all these problems are largely caused by the deficiency in the TCP design.
 	\par
-	In TCP, 
-	the receiver tells the sender which packets are lost through the feedback ACKs. 
-	The sender then retransmits the corresponding packets accordingly.
-	For UAV video transmission and other real-time applications,
-	the feedback delay is too large.
-	Not only that, TCP treats the packet loss as the signs of link congestion, and then starts the corresponding congestion control algorithm, reduces the transmission rate.
-	Taking into account the very low bit error rate in the wired network and congestion is the main reason for packet loss,
-	this mechanism is applicable.
-	However, for UAVs, due to weather,obstacles,multipath interference and other factors, TCP packet loss rate is much larger than in wired networks, and packet loss is mainly caused by the block and packet corruption.
-	Traditional TCP can not identify congestion packet loss and non-congestion packet loss, and starts the congestion algorithm indiscriminately, which will reduce the transmission rate, cause TCP unable to make full use of available bandwidth, reduce the rate of UAV video transmission and increase the transmission delay.
-	It is necessary to improve the standard TCP protocol to improve the performance of TCP-based UAV video transmission.
-	The emergence of network coding gives us a way to solve this problem.
-	Through redundant coding at the sender side, to a certain extent,the packet loss can be masked, thereby increasing the speed of data transmission and reducing the delay.
+ In the TCP protocol framework, receiver will acknowledge the sender the information of packet loss via the feedback ACKs, and the sender may accordingly decide to retransmit the corresponding lost packets. However, in real time UAV video transmission, the ACK feedback and retransmission delay may be very long. Meanwhile, TCP protocol will always treat the packet loss as the signs of network congestion. And the corresponding congestion control policy will react by reducing the transmission rate. This mechanism is applicable in wired network, in which the transmission error rate is very low and the traffic congestion will be the primary reason for packet loss. However, for UAVs, due to weather, obstacles, multipath interference and other factors, TCP packet loss rate will become a dominant constraint, and packet loss is mainly caused by the packet corruption. In addition, traditional TCP can not identify the congestion packet loss and non-congestion packet loss, and consequently starts the congestion control algorithm indiscriminately to reduce the transmission rate will make TCP unable to make full use of the underlying available bandwidth. As a consequence, the UAV video transmission rate degradation and the transmission delay issue will present. Hence, it is imperative to modify the standard TCP protocol to improve the performance of TCP-based UAV video transmission. The emergence of network coding paves a way to solve this problem. To a certain extent, the packet loss can be masked via redundant coding at the sender, thus to improve the data transmission rate and to reduce the transmission delay as well. 
 	\par
-	This paper analyzes the problems of TCP-based UAV video transmission, and verifies that the core of the problems is the inefficiency of the TCP in the face of a lossy channel. 
-	Recent work to improve the performance of TCP in lossy channel is sorted out.
-	The principle of network coding is introduced,especially the linear network coding.
-	Batch-coding and pipeline-coding are compared.
-	For UAV video transmission application scenarios, the advantages and disadvantages are analyzed.
-	On the basis of above, the pipelined coding TCP protocol is designed,implemented and transplanted into embedded devices.
-	In simulated lossy network,the performance of coding TCP and standard TCP-Reno are tested and compared.
-	On the basis of understanding the disadvantages of coding TCP,this paper makes further improvements to make coding TCP better adapt to UAV video transmission applications.
-	A forward retransmission mechanism is proposed to deal with burst packet loss within an RTO;
-	A new adaptive redundancy algorithm is proposed to deal with the fluctuation of the network;
-	Improve the transmission timing of the redundant packet to reduce the average decoding delay;
-	Design a compensation retransmission mechanism to reduce the dimension of the decoding matrix and the decoding delay;
-	Redesign the rule of setting the coefficients to reduce the overhead.
-	Finally,this paper builds a UAV video transmission experimental platform to verify the effectiveness of enhanced coding TCP for improving the UAV video transmission.
+This thesis analyzes the TCP-based UAV video transmission problem, and verifies that the critical problem is the inefficiency of the TCP in the lossy channels. Recent research efforts on improving the performance of TCP in lossy channel are also sorted out. The principle of network coding, especially the linear network coding is introduced. Meanwhile, the batch-coding and the pipeline-coding are compared, and their advantages and disadvantages are also analyzed when applied into UAV video transmission scenarios. On the basis, the
+pipelined coding based TCP protocol is designed, implemented and transplanted into the embedded devices. In simulated lossy network, the performance of the pipelined coding based TCP and the standard TCP-Reno are tested and compared. Furthermore, the coding based TCP protocol is improved to better adapt to UAV video transmission. A forward retransmission mechanism is proposed to deal with the successive packet loss within one RTO, and a new adaptive redundancy algorithm is proposed to manage the fluctuation of the network. Besides, we also design a compensation based retransmission mechanism to reduce the dimension of the decoding matrix, the decoding delay as well as to redesign the rule of setting the coefficients to reduce the calculation overhead. Finally, this paper builds a UAV video transmission experimental platform to verify the effectiveness of enhanced coding TCP on improving the UAV video transmission.
+
 }
 {UAV Video Transmission;Transport Protocol;Network Coding; Retransmission;Adaptive Redundancy;Packet Loss}	% 英文关键词输入区，关键词之间用“; ”分开，不超过五个
