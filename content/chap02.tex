@@ -5,7 +5,7 @@
 本章主要介绍网络编码基础原理，重点分析了线性网络编码。详细说明了TCP/NC协议的设计原理。
 \section{网络编码理论基础}
 2000年，R. Ahlswede等在论文“Network Information Flow”\textsuperscript{\cite{Ahlswede2000}}中创造性地提出了“网络编码”新概念，首次将编码和路由有机地结合在一起，建立了一种全新的网络体系结构，不仅解决了广播路由这一信息论中的经典难题，而且使得达到组播网络容量的理论上限成为可能。
-网络编码建立在一个简单而广泛的概念的基础上：在包交换网络中，中间节点不仅仅是简单地路由转发接收到的数据包，而是对它们进行一些函数操作并计算、转发操作结果\textsuperscript{\cite{梅达尔2014网络编码基础与应用}}。运用网络编码可以提高网络吞吐率、均衡网络负载和提高网络带宽利用率等。
+网络编码建立在一个简单而广泛的概念的基础上：在包交换网络中，中间节点不仅仅是简单地路由转发接收到的数据包，而是对它们进行一些函数操作并计算、转发操作结果\textsuperscript{\cite{meidaer2014}}。运用网络编码可以提高网络吞吐率、均衡网络负载和提高网络带宽利用率等。
 \subsection{Network Coding基本概念}
 我们以文献\cite{Ahlswede2000}中著名的蝶形网络，即图\ref{BUTTER_EPS}，为例来说明Network Coding的基本原理。
 \begin{figure}[htbp]
@@ -31,7 +31,7 @@
 	\item 有限的数据包集合$A$，$\left| A \right| \ge 2$。
 \end{enumerate}
 \par
-图$G$的顶点代表包交换网络中的通信节点，有向边代表通信节点之间的无差错传输信道。有向边$(u,v)$具有单位容量，即每条边每次只能将一个数据包（ 从符号集$A$中选取的一个符号）从$u$传送给点$v$。如果要进行更大容量的传输，可以在$u$和$v$之间建立多条平行边，单位容量都为1。以图\ref{TULUNMOXING_EPS}单源多宿网络为例，图\ref{TULUNMOXING_EPS}$\left(b\right)$与图\ref{TULUNMOXING_EPS}本质上是一样的，仅仅是将所有的路径都转换为单位容量。对于顶点$u,v \in V$，如果$v=u$或者图$G$中存在一条从$u$到$v$的有向路径，就称$u$可达$v$。在有向边$\left(u,v\right) \in E$上进行的操作是将点$u$发出的数据包$p \in A$无差错地交付给点$v$。
+图$G$的顶点代表包交换网络中的通信节点，有向边代表通信节点之间的无差错传输信道。有向边$(u,v)$具有单位容量，即每条边每次只能将一个数据包（ 从符号集$A$中选取的一个符号）从$u$传送给点$v$。如果要进行更大容量的传输，可以在$u$和$v$之间建立多条平行边，单位容量都为1。以图\ref{TULUNMOXING_EPS}单源多宿网络为例，图\ref{TULUNMOXING_EPS}$\left(b\right)$与图\ref{TULUNMOXING_EPS}$(a)$本质上是一样的，仅仅是将所有的路径都转换为单位容量。对于顶点$u,v \in V$，如果$v=u$或者图$G$中存在一条从$u$到$v$的有向路径，就称$u$可达$v$。在有向边$\left(u,v\right) \in E$上进行的操作是将点$u$发出的数据包$p \in A$无差错地交付给点$v$。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/tulunmoxing.eps}
@@ -78,7 +78,7 @@
 对于目的节点$t$来说，当且仅当$\left|{\rm I}\left(t\right)\right| \times r$阶全局转移矩阵$G_{t}$的秩为$r$时，$t$才能恢复出$\left(p_1,p_2,\dots,p_r\right)$中的所有元素。因为只有$G_t$满秩时，才存在满足${G_t}^{-1}G_t={\rm I}_r$的左逆矩阵，其中${\rm I}_r$是$r \times r$阶单位矩阵。只需$G_{t}$满秩，而不要求$G_{t}$是可求逆的方阵。目的节点$t$可以通过计算${G_t}^{-1}{\rm X}_{{\rm I}\left(t\right)}$得到$\left(p_1,p_2,\dots,p_r\right)^{T}$。
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=4in]{figures/zhuanyi.pdf}
+	\includegraphics[width=4in]{figures/zhuanyi.eps}
 	\caption{标注了本地转移矩阵的蝶形网络}
 	\label{ZHUANYI_EPS}
 \end{figure}
@@ -87,7 +87,7 @@
 \par
 网络中的数据包一般被看做是字节流。若干个数据包组成一个字节流，这个字节流被切分为$k$段，称为一个“\emph{generation}”\textsuperscript{\cite{chou2003practical}}。对于每一个\emph{generation}，编码端使用随机线性编码产生$n$个经过编码的数据包。在目的节点，$n$个编码报文的任意$k$个独立数据包就足够恢复出原始数据包。换句话说，我们可以容忍网络中丢失$n-k$个报文。纠删码和网络编码的区别是前者只在源节点进行编码，而后者则在网络中的各个节点进行编码。实际上，纠删码可以看做是网络编码的特例。
 \par
-在恶劣的网络环境下，端到端的纠删码不足以实现可靠报文传输\textsuperscript{\cite{4753100}}。一些学者将网络编码应用于这些极具挑战性的网络中。和纠删码不同，网路的中间节点也会参与到编码中。在一些网络编码的实际应用中，“Batch Network Coding”是应用最为广泛的一种\textsuperscript{\cite{chachulski2007trading,algebraicapproach,chou2003practical,ho2003randomized,chen2009codecast,4015713}}。先介绍Batch Coding的相关原理。表\ref{SHUYU}是后面会用到的一些术语。
+在恶劣的网络环境下，端到端的纠删码不足以实现可靠报文传输\textsuperscript{\cite{4753100}}。一些学者将网络编码应用于这些极具挑战性的网络中。和纠删码不同，网路的中间节点也会参与到编码中。在一些网络编码的实际应用中，“Batch Network Coding”是应用最为广泛的一种\textsuperscript{\cite{chachulski2007trading,algebraicapproach,chou2003practical,ho2003randomized,chen2009codecast,4015713}}。先介绍Batch Coding的相关原理。表\ref{XGSHUYU}是后面会用到的一些术语。
 \begin{table}[htbp]
 	\centering
 	\caption{相关术语}
@@ -112,8 +112,7 @@
 		Delay & 目的站点的应用收到包的时间和包从源节点的应用产生的时间的差\\
 		\bottomrule
 	\end{tabularx}
-
-\label{SHUYU}
+\label{XGSHUYU}
 \end{table}
 \subsubsection[Batch Coding]{\textbf{Batch Coding}}
 \par
@@ -189,7 +188,7 @@ c = \sum\limits_{j = 1}^m {{e_j}{p_{i \times k + j}}}
 	{{p_k}}
 	\end{array}} \right]
 \end{equation}
-上述方程可以逐步求解，而无需等待整个的\emph{generation}报文都集齐。例如，收到$c_{1}$，目的节点可以解码出$p_{1}$,以此类推。编码冗余的设计与Batch Coding略有不同。令$r$为编码冗余度，$r \ge 1$。对于每个数据包来说，$r - \left\lfloor r \right\rfloor $的概率产生$\left\lfloor r \right\rfloor + 1$个编码包，$1 - \left({r - \left\lfloor r \right\rfloor} \right)$的概率产生$r$个编码包。
+上述方程可以逐步求解，而无需等待整个的\emph{generation}报文都集齐。例如，收到$c_{1}$，目的节点可以解码出$p_{1}$,以此类推。编码冗余的设计与Batch Coding略有不同。令$r$为编码冗余度，$r \ge 1$。对于每个数据包来说，$r - \left\lfloor r \right\rfloor $的概率产生$\left\lfloor r \right\rfloor + 1$个编码包，$1 - \left({r - \left\lfloor r \right\rfloor} \right)$的概率产生$\left\lfloor r \right\rfloor$个编码包。
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[width=6in]{figures/pipeline.eps}
@@ -201,7 +200,8 @@ c = \sum\limits_{j = 1}^m {{e_j}{p_{i \times k + j}}}
 \par
 图\ref{LIUSHUIXIAN_EPS}展示了一个流水线编码的例子。这里\emph{generation}的大小为4，冗余度为1.25。当有一个原始数据包产生时，立马就编码得到一个编码包。同样地，在解码端，每当有一个“innovative”报文到来的时候，就可以立马解出一个原始报文。
 \par
-对于丢包的情况，图\ref{LIUSHUIXIAN_EPS}中\emph{Gen \# 2}中的$C8$丢失，目的节点在收到$C9$后，无法解出$DATA7$。这时候需要将undecoded packets存起来，等到冗余报文过来才可以解出原始报文，如图\ref{LIUSHUIXIAN_EPS}中的$C10$。Batch Coding的编解码流程如Algorithm\ref{algo1}和Algorithm\ref{algo2}。
+对于丢包的情况，图\ref{LIUSHUIXIAN_EPS}中\emph{Gen \# 2}中的$C8$丢失，目的节点在收到$C9$后，无法解出$DATA7$。这时候需要将undecoded packets存起来，等到冗余报文过来才可以解出原始报文，如图\ref{LIUSHUIXIAN_EPS}中的$C10$。
+%Batch Coding的编解码流程如Algorithm\ref{algo1}和Algorithm\ref{algo2}。
 \par
 采用流水线编码的优点主要有：
 \begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
@@ -211,49 +211,49 @@ c = \sum\limits_{j = 1}^m {{e_j}{p_{i \times k + j}}}
 \end{enumerate}
 \par
 本文所实现的TCP/NC协议也是基于流水线网络编码。
-\begin{algorithm}
-	\caption{Encoding Function}  
-	\label{algo1}
-	\KwIn{coding redundancy $r$，data packet \emph{data} from up-layer，$generation\_buffer\left[0,\dots,m,\dots \right]$，number of packets currently in \emph{generation buffer} $m-1$}  
-	\KwOut{NONE}  
-	Store $data$ to \emph{generation buffer}\;
-	%%$i$ \leftarrow $0$ \;
-	$i \leftarrow 0$\;
-	\While{$i<num$}  
-	{  
-		\If{$\left(num-i<1 \wedge rand()\% 100 > num-i\right)$}  
-		{  
-			\Break\;
-		} 
-		Generate Coding Vector\;
-		\For{$j=0;j \le m-1;j++$}
-		{
-			\If{$generation\_buffer[j]==NULL$}{$coding\_vector[j]=0$}
-		}
-		Encode packet\;
-		Send Coded Packet to MAC layer\;
-		%%$i$ \leftarrow $i+1$\;
-		$i \leftarrow i+1$\;
-	}
-\end{algorithm}
-	\begin{algorithm}
-		\caption{Decoding Function}
-		\KwIn{data packet \emph{data}，$generation\_buffer\left[0,\dots,m,\dots \right]$}
-		\KwOut{NONE}
-		\label{algo2}  
-		\If{(\emph{not\_innovative}(data))}
-		{
-			Free\_data(\emph{data})\;
-			\Return;
-		}
-		Store \emph{data} to \emph{generation buffer}\;
-		Gaussian\_Elimination(\emph{generation})\;
-		\If{(decodable packets cause no reordering)}
-		{
-			Deliver it to Transport Layer;
-		}
-	\end{algorithm}
-
+%\renewcommand{\algorithmcfname}{算法}
+%\begin{algorithm}
+%	\caption{Batch Coding 编码流程}  
+%	\label{algo1}
+%	\KwIn{编码冗余度 $r$，来自上层的数据包\emph{data} ，$generation\_buffer\left[0,\dots,m,\dots \right]$，number of packets currently in \emph{generation buffer} $m-1$}  
+%	将数据包存放在\emph{generation buffer}\;
+%	%%$i$ \leftarrow $0$ \;
+%	$i \leftarrow 0$\;
+%	\While{$i<num$}  
+%	{  
+%		\If{$\left(num-i<1 \wedge rand()\% 100 > num-i\right)$}  
+%		{  
+%			\Break\;
+%		} 
+%		生成编码系数向量\;
+%		\For{$j=0;j \le m-1;j++$}
+%		{
+%			\If{$generation\_buffer[j]==NULL$}{$coding\_vector[j]=0$}
+%		}
+%		对数据包进行编码\;
+%		将数据包发往MAC层\;
+%		%%$i$ \leftarrow $i+1$\;
+%		$i \leftarrow i+1$\;
+%	}
+%\end{algorithm}
+%	\begin{algorithm}
+%		\caption{解码函数流程}
+%		\KwIn{data packet \emph{data}，$generation\_buffer\left[0,\dots,m,\dots \right]$}
+%		\KwOut{NONE}
+%		\label{algo2}  
+%		\If{(\emph{not\_innovative}(data))}
+%		{
+%			Free\_data(\emph{data})\;
+%			\Return;
+%		}
+%		Store \emph{data} to \emph{generation buffer}\;
+%		Gaussian\_Elimination(\emph{generation})\;
+%		\If{(decodable packets cause no reordering)}
+%		{
+%			Deliver it to Transport Layer;
+%		}
+%	\end{algorithm}
+%
 
 \section{TCP/NC协议}
 在详细阐述TCP/NC协议原理之前，先引入\emph{ACK on degree of freedom}这个概念。
@@ -322,7 +322,7 @@ TCP可靠传输的背后思想是使用Acknowledgements对按序到来的数据�
 TCP/NC能够抵抗链路丢包的关键就是发送端进行冗余编码。通过“seen”这个概念，将链路丢包这个问题往后推。如果后期的冗余包能够补偿丢失的报文，那么TCP层就不会发现丢包。如图\ref{CODINGACK_EPS}所示，虽然$SEQ=2$和$SEQ=3$这两个报文丢失，但发送端依然可以收到对$p_{2}$和$p_{3}$的ACK。只要后期传输过程中的冗余包足够补偿掉$SEQ=2$和$SEQ=3$的丢失，那么上层TCP就根本发现不了丢包。理论上，当链路的丢包率为$\rho$时，设置的冗余度应该为$R=\frac{1}{1-\rho}$。
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=4in]{figures/codingack.pdf}
+	\includegraphics[width=4in]{figures/codingack.eps}
 	\caption{编码和ACK示例}
 	\label{CODINGACK_EPS}
 \end{figure}

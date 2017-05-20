@@ -5,7 +5,7 @@
 本章主要讲TCP/NC的具体实现，
 在模拟有损信道下测试TCP/NC的性能，
 并与标准的TCP-Reno进行分析对比。
-与文献\cite{翟丰泰2015基于网络编码的,李永超2015基于网络编码}采用Batch Coding所不同的是，本文采用流水线编码方式对数据包进行编码。相比Batch Coding，流水线编码可以更好地掩盖丢包，且和原有TCP协议的滑动窗口结合良好。
+与文献\cite{zaifengtai,liyongchao}采用Batch Coding所不同的是，本文采用流水线编码方式对数据包进行编码。相比Batch Coding，流水线编码可以更好地掩盖丢包，且和原有TCP协议的滑动窗口结合良好。
 \section{数据包编码}
 在阐述数据包编码之前，
 先简单介绍近世代数的相关概念。
@@ -33,9 +33,9 @@
 	非空集合$F$含有有限个元素，
 	其中定义了加和乘两种运算，且满足
 	\begin{enumerate}[fullwidth,itemindent=2em,label=(\arabic*)]
-		\item $F$关于加法构成阿贝尔群，加法恒等元记为0
-		\item $F$中所有非零元素对乘法构成阿贝尔群，乘法恒等元记为1
-		\item $F$加法和乘法满足分配律
+		\item $F$关于加法构成阿贝尔群，加法恒等元记为0。
+		\item $F$中所有非零元素对乘法构成阿贝尔群，乘法恒等元记为1。
+		\item $F$加法和乘法满足分配律。
 	\end{enumerate}
 	\par
 	则$F$与这两种运算构成有限域\textsuperscript{\cite{zzc2003}}。
@@ -352,7 +352,7 @@ NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是�
 其形式为\emph{sk\_buff}结构体。
 \emph{sk\_buff}可能是Linux网络代码中最重要的数据结构，
 包含了数据包所需的所有控制信息，
-代表已接收或正要传输的数据的报头\textsuperscript{\cite{linux网络技术内幕}}。
+代表已接收或正要传输的数据的报头\textsuperscript{\cite{linuxneimu}}。
 在内核中，\emph{sk\_buff}被组织成链表，
 这样就可以快速地将\emph{sk\_buff}从一个链表移动到另一个链表。
 数据包在Linux的网络协议栈的不同层之间传递，
@@ -452,10 +452,10 @@ NC层发往下层IP层的报文都需要添加一个NC头部，其中需要填�
 	\label{CODINGHEADER_EPS}
 \end{figure}
 \par
-\emph{Base}和\emph{Start}都是32比特，和标准TCP头部的\emph{seq}字段长度一致。$len_{i}$则占用2个字节，足够表示一个数据包的长度。以图\ref{CODINGHEADER_EPS}所示布局，一个编码包将需要多耗费$24+3n\left(n \ge 1\right)$个字节。其实还可以将报头开销进一步减小。例如，由于NC头部已经包含了端口信息、扩展因子、ACK序号、接收窗口，可以将它们从TCP的头部去掉，然后解码端在解码出相应报文后，再将相关信息补上，最后才交给TCP上层。代码\ref{NCHEAD}为NC头部的结构体定义，最后出现的\emph{resv}字节是为了字节对齐。本文设定的编码窗口为\emph{TCPNC\_CODE\_WND=5}，即最多一次编码5个包。
+\emph{Base}和\emph{Start}都是32比特，和标准TCP头部的\emph{seq}字段长度一致。$len_{i}$则占用2个字节，足够表示一个数据包的长度。以图\ref{CODINGHEADER_EPS}所示布局，一个编码包将需要多耗费$24+3n\left(n \ge 1\right)$个字节。其实还可以将报头开销进一步减小。例如，由于NC头部已经包含了端口信息、扩展因子、接收窗口，可以将它们从TCP的头部去掉，然后解码端在解码出相应报文后，再将相关信息补上，最后才交给TCP上层。代码\ref{NCHEAD}为NC头部的结构体定义，最后出现的\emph{resv}字节是为了字节对齐。本文设定的编码窗口为\emph{TCPNC\_CODE\_WND=5}，即最多一次编码5个包。
 \par
 对于TCP报文的长度不等的问题，如图\ref{CODINGHEADER_EPS}中的$p_{1}$，$p_{2}$，$p_{3}$所示。本文采取的方式是按照参与编码的原始报文的最长报文的长度为准，其他报文不够长的尾部补0。
-	\begin{lstlisting}[float,caption=NC头部结构,label={NCHEAD},language={[ANSI]C}]
+	\begin{lstlisting}[float,caption=NC头部结构体,label={NCHEAD},language={[ANSI]C}]
 	struct nchdr{
 	__be16 s_port;//source port
 	__be16 d_port;//destination port
@@ -564,7 +564,7 @@ pktmat = \left[ {\begin{array}{*{20}{c}}
 	0&1&1&2
 	\end{array}} \right]
 \end{eqnarray}
-式\ref{eq32}中的矩阵$M$代表一系列行变换，可以看到经过一系列行变换后，$coeffmat$已经变为单位阵
+式\ref{eq33}中的矩阵$M$代表一系列行变换，可以看到经过一系列行变换后，$coeffmat$已经变为单位阵
 \begin{equation}\label{eq34}
 leftmat = \left[ {\begin{array}{*{20}{c}}
 	1&0\\
@@ -640,7 +640,7 @@ coeffmat = \left[ {\begin{array}{*{20}{c}}
 	pktmat=\left[ {\begin{array}{*{20}{c}}
 		{{p_1}}\\
 		{{p_2}}\\
-		{{c_3}}
+		{{c_4}}
 		\end{array}} \right]
 \end{equation}
 由式\ref{eq310}，式\ref{eq311}，式\ref{eq312}可得
@@ -652,7 +652,7 @@ coeffmat = \left[ {\begin{array}{*{20}{c}}
 	\end{array}} \right] \cdot \left[ {\begin{array}{*{20}{c}}
 	{{p_1}}\\
 	{{p_2}}\\
-	{{c_3}}
+	{{c_4}}
 	\end{array}} \right]
 \end{equation}
 根据式\ref{eq313}，得出了$p_{3}+q$，其中$q=\sum\limits_{k = 3} {{a_k}{p_k}} $这种形式，因此接收端这边看到了$p_{3}$。此时，系数解码矩阵为式\ref{eq310}，数据包解码矩阵

@@ -248,7 +248,7 @@ TCP-Vegas的发送端在网络开始拥塞时就将传送速率降低，
 TCP-Vegas与TCP-Reno竞争时的无力是一种不可忽略的劣势。
 另外，其同样无法处理因丢包引起的重传导致的时延过大问题。
 \par
-RFC3168所引入的Explicit Congestion Notification（ ECN)机制\textsuperscript{\cite{ramakrishnan2001rfc}}是另一种显示告知TCP链路发生了拥塞的方法。
+RFC3168所引入的Explicit Congestion Notification（ ECN)机制\textsuperscript{\cite{ramakrishnan2001rfc}}是另一种显式告知TCP链路发生了拥塞的方法。
 在IP首部的TOS字段的第7和8比特被重新定义为ECN字段。
 网络中的节点通过ECN字段来指示网络出现拥塞。
 与前面谈到一样，
