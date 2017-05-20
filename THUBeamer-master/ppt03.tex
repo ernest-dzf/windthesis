@@ -56,8 +56,8 @@
 %%编码示例
 \begin{frame}
 	\frametitle{编码示例}
-	我们以两个数据包$p_{1}$和$p_{2}$的运算为例，
-	说明如何对数据包进行编码。
+%	我们以两个数据包$p_{1}$和$p_{2}$的运算为例，
+%	说明如何对数据包进行编码。
 	假定数据包$p_{1}$和$p_{2}$都为一个2字节的报文，
 	以比特流的形式表示，
 	$p_{1}=\{1010\ 0101\ 0110\ 1111\}$，$p_{2}=\{1111\ 0000\ 1101\ 0110\}$，
@@ -154,6 +154,25 @@
 	
 \end{frame}
 \subsection{NC层关键技术}
+
+%%NC层总体框架
+\begin{frame}[t]
+	\frametitle{NC层总体框架}
+	\begin{columns}[t]
+		\begin{column}{0.4\textwidth}
+		图\ref{fig:jiagou}为NC层总体框架。
+		虚线框内的即为网络编码层。
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\vspace{-2.5em}
+			\begin{figure}
+				\includegraphics[height=5cm]{../figures/jiagou.eps}
+				\caption{NC层总体框架}
+				\label{fig:jiagou}
+			\end{figure}
+		\end{column}
+	\end{columns}
+\end{frame}
 %%NC层头部
 \begin{frame}
 	\frametitle{NC层头部}
@@ -161,13 +180,13 @@
 		\begin{column}{0.4\textwidth}
 			发送端需要给产生的编码包添加NC头部，
 			其中包含编码系数等信息，接收端利用这些信息进行解码。
-			图\ref{fig:codingMechanism}为NC报文的头部。
+			图\ref{fig:codingheader}为NC报文的头部。
 		\end{column}
 		\begin{column}{0.6\textwidth}
 			\begin{figure}
 				\includegraphics[height=4cm]{../figures/codingheader.eps}
-				\label{fig:codingheader}
 				\caption{NC层头部}
+				\label{fig:codingheader}
 			\end{figure}
 		\end{column}
 	\end{columns}
@@ -189,7 +208,7 @@
 		\begin{column}{0.6\textwidth}
 			\vspace{-2.5em}
 			\begin{figure}
-				\includegraphics[height=5.5cm]{figures/encoding.jpg}
+				\includegraphics[height=5.5cm]{figures/encoding.eps}
 			\end{figure}
 		\end{column}
 	\end{columns}
@@ -198,6 +217,19 @@
 %%解码
 \begin{frame}
 	\frametitle{解码}
+	解码步骤如下：
+	\begin{enumerate}
+		\item 提取编码报文的编码系数
+		\item 对系数进行高斯消元
+		\item 利用高斯消元的结果对数据包报文部分进行相应的操作
+	\end{enumerate}
+	\begin{block}{解码关键技术}
+		\begin{enumerate}
+			\item \emph{backlog队列}，接收端收到的编码数据包首先都会进入\emph{backlog}队列
+			\item \emph{decoding队列},\emph{decoding}队列的数据包为目前在解码矩阵中的数据包，可能参与到对数据包的解码操作
+			\item \emph{decoded队列}，\emph{decoded}队列存放的是目前已经解码出的数据报文。
+		\end{enumerate}
+	\end{block}
 \end{frame}
 
 %%接收窗口
@@ -227,6 +259,7 @@
 			\vspace{-1.5em}
 			\begin{table}[htp]
 				\centering
+				\small
 				\caption{测试环境参数}
 				\label{tab:ceshicanshu}
 				\begin{tabular}{ll}
@@ -250,6 +283,7 @@
 	\newpage
 	固定链路丢包率为$5\%$,
 	测试冗余度对吞吐率的影响如图\ref{fig:throughput2redundancy}。
+	
 	我们对不同丢包率下TCP和TCP/NC的性能进行了对比测试，
 	如图\ref{fig:throughput2loss}所示，
 	其中TCP/NC的吞吐率都为最优吞吐率。
@@ -257,23 +291,23 @@
 		\begin{column}{0.5\textwidth}
 			\begin{figure}
 				\includegraphics[height=3.5cm]{../figures/redundancy.eps}
-				\label{fig:throughput2redundancy}
 				\caption{吞吐率-冗余度}
+				\label{fig:throughput2redundancy}
 			\end{figure}
 		\end{column}
 		\begin{column}{0.5\textwidth}
 			\begin{figure}
 				\includegraphics[height=3.5cm]{../figures/throughput2lossrate.eps}
-				\label{fig:throughput2loss}
 				\caption{吞吐率-丢包率}
+				\label{fig:throughput2loss}
 			\end{figure}
 		\end{column}
 	\end{columns}
 \end{frame}
 
-\begin{frame}
-	\frametitle{结论}
-\end{frame}
+%\begin{frame}
+%	\frametitle{结论}
+%\end{frame}
 
 
 

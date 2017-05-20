@@ -73,7 +73,7 @@
 	\\
 	更新冗余度方法如下：
 	\begin{equation}
-	R=\dfrac{1}{1-\rho}
+	R_{new}=a*\frac{1}{1-\rho}+b*R_{old},0 \le a,b \le 1,a+b=1
 	\end{equation}
 \end{frame}
 
@@ -106,8 +106,8 @@
 %\vspace{2em}
 以图\ref{fig:jiema}为例，
 解码矩阵还需要2个由$p_3$到$p_6$组成的编码包即可解码出$p_3$和$p_6$。
-如果能让发送端了解到这个信息，
-发送端在下一回合发送过程中，
+如果发送端了解到这个信息，
+在下一回合发送过程中，
 主动额外地多发相关的编码包，
 就可以提前解出$p_3 \sim p_6$，
 而无需等到下一次根据冗余度发出的冗余包。
@@ -184,5 +184,57 @@
 	\end{figure}
 \end{frame}
 
-\subsection{测试结果和结论}
+\subsection{固定编码系数码本}
+\begin{frame}
+	\frametitle{编码系数码本}
+	借用\emph{Pid}字段，
+	固定编码系数码本为范德蒙矩阵。
+	其构成方法为。
+	\begin{equation}\label{eq:vandmat}
+	vand\_matrix[i][j]=(i+1)^j
+	\end{equation}
+	由\emph{Pid}到编码系数\emph{coeff}的映射函数$f:Pid \rightarrow coeff$为:
+	\begin{equation}\label{eq:vandyingshe}
+	f(Pid)=vand\_matrix[Pid\%255]
+	\end{equation}
+	
+	\begin{tiny}
+			\begin{equation}
+		vand\_matrix=\left[ {\begin{array}{*{20}{c}}
+			{0x01}&{0x01}&{0x01}&{0x01}&{0x01}\\
+			{0x01}&{0x02}&{0x04}&{0x08}&{0x10}\\
+			{0x01}&{0x03}&{0x05}&{0x0f}&{0x11}\\
+			{0x01}&{0x04}&{0x10}&{0x40}&{0x1b}\\
+			{0x01}&{0x05}&{0x11}&{0x55}&{0x1a}\\
+			{\vdots}&{\vdots}&{\vdots}&{\vdots}&{\vdots}\\
+			{0x01}&{0xfe}&{0x12}&{0x9e}&{0x1f}
+			\end{array}} \right]
+		\end{equation}
+	\end{tiny}
+
+\end{frame}
+
+\section{测试结果}
+\begin{frame}[allowframebreaks]
+	\frametitle{测试结果}
+	\begin{columns}
+		\begin{column}{0.5\textwidth}
+			\begin{figure}
+			\includegraphics[height=4cm]{../figures/adaptive_redundancy.eps}
+			\caption{TCP-Reno、TCP/NC与E-TCP/NC在不同丢包率下的对比}
+			\label{fig:adap_redun}
+		\end{figure}
+		\end{column}
+		\begin{column}{0.5\textwidth}
+			\begin{figure}
+				
+			
+			\includegraphics[height=4cm]{../figures/buchang.eps}
+			\caption{TCP/NC与E-TCP/NC解码矩阵缺失报文个数对比}
+			\label{fig:queshigeshu}
+		\end{figure}
+		\end{column}
+	\end{columns}
+	\newpage
+\end{frame}
 

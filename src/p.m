@@ -50,7 +50,7 @@
 % legend('TCP','TCP/NC');
 
 
-% 
+
 % loss_rate=[0 1 2 3 5 8 10 13 15 20 25];
 % tcp_rate=[95.3 34.9 23.8 17.4 9.37 3.35 1.95 0.9 0.593 0.114 0.008];
 % pp=55.8/48.7;
@@ -78,7 +78,7 @@
 % axis([0 25 0 100]);
 % xlabel('\fontsize {30}¶ª°üÂÊ£¨%£©');
 % ylabel('\fontsize {30}ÍÌÍÂÂÊ(Mbps)');
-% legend('TCP','E-TCP/NC','TCP/NC(R=1.3)');
+% legend('TCP','RA-TCP/NC','TCP/NC(R=1.3)');
 
 
 clc;
@@ -105,7 +105,7 @@ set(gca,'FontSize',16);
 plot(tcpnc,'b','LineWidth',1);
 set(gca,'xtick',-inf:inf:inf);
 axis([0 1300 0 10]);
-ylabel('\fontsize {20}Mat\_loss');
+ylabel('\fontsize {20}mat\_loss');
 legend('TCP/NC');
 %%hold on;
 subplot(2,1,2);
@@ -114,5 +114,5 @@ axis([0 1300 0 10]);
 set(gca,'FontSize',16);
 xlabel('\fontsize {20}num');
 ylabel('\fontsize {20}mat\_loss');
-legend('E-TCP/NC');
+legend('TCP/NC(COMP)');
 
