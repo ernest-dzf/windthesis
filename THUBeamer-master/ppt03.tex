@@ -76,51 +76,51 @@
 		\item 拼接两个结果得到$p_{encoded}=\{0000\ 0010\ 1010\ 0111\}$。
 	\end{enumerate}
 \end{frame}
-\subsection{技术路线}
-%%设备选型
-\begin{frame}
-	\frametitle{设备选型}
-	\begin{columns}
-		\begin{column}{0.4\textwidth}
-			考虑到无人机视频传输的应用场景，
-			及TCP/NC需要参与到网络协议栈的流程中去，
-			选用Raspberry Pi这款基于Linux的嵌入式设备，
-			部署TCP/NC协议,如图\ref{fig:rasp}所示。
-
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\begin{figure}
-				\includegraphics[height=4cm]{figures/rasp.eps}
-				\caption{Raspberry Pi板子}
-				\label{fig:rasp}
-			\end{figure}
-		\end{column}
-	\end{columns}
-	\note{
-		Raspberry Pi是一款ARM架构的单板机，
-		板载了以太网卡。支持CSI接口，
-		方便外接摄像头，进行后期无人机视频传输测试。
-		操作系统选择树莓派基金会的Debian系统，
-		内核版本为3.18。
-	}
-\end{frame}
+\subsection{Netfilter}
+%%%设备选型
+%\begin{frame}
+%	\frametitle{设备选型}
+%	\begin{columns}
+%		\begin{column}{0.4\textwidth}
+%			考虑到无人机视频传输的应用场景，
+%			及TCP/NC需要参与到网络协议栈的流程中去，
+%			选用Raspberry Pi这款基于Linux的嵌入式设备，
+%			部署TCP/NC协议,如图\ref{fig:rasp}所示。
+%
+%		\end{column}
+%		\begin{column}{0.5\textwidth}
+%			\begin{figure}
+%				\includegraphics[height=4cm]{figures/rasp.eps}
+%				\caption{Raspberry Pi板子}
+%				\label{fig:rasp}
+%			\end{figure}
+%		\end{column}
+%	\end{columns}
+%	\note{
+%		Raspberry Pi是一款ARM架构的单板机，
+%		板载了以太网卡。支持CSI接口，
+%		方便外接摄像头，进行后期无人机视频传输测试。
+%		操作系统选择树莓派基金会的Debian系统，
+%		内核版本为3.18。
+%	}
+%\end{frame}
 %%Netfilter
 \begin{frame}
 	\frametitle{Netfilter}
+
 	\begin{columns}
 		\begin{column}{0.5\textwidth}
 			NC层实施方案有两种：
 			\begin{enumerate}
-				\item 直接在内核的TCP协议源码上更改，添加NC层的各个模块，然后再编译内核源码
-				\item 利用Linux内核提供给用户用于处理网络封包的框架——Netfilter。
+				\item 直接在内核的TCP协议源码上更改，添加NC层的各个模块，然后再编译内核源码。
+				\item 利用Linux内核提供给用户用于处理网络封包的框架——Netfilter。在LOCAL\_IN和LOCAL\_OUT处注册编解码模块。
 			\end{enumerate}
-			本文将TCP/NC部署在Netfilter的NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT处。
 		\end{column}
 		\begin{column}{0.4\textwidth}
 			\vspace{-1.5em}
 			\begin{figure}
-				\includegraphics[height=5cm]{../figures/packetflow.eps}
-				\caption{Netfilter及其在内核源码中调用关系}
+				\includegraphics[height=5cm]{../figures/netfilter.png}
+				\caption{Netfilter结构}
 				\label{fig:packetflow}
 			\end{figure}
 		\end{column}
@@ -130,88 +130,123 @@
 	}
 \end{frame}
 %%关键数据结构
-\begin{frame}
-	\frametitle{关键数据结构}
-	NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，
-	其形式为\emph{sk\_buff}结构体，如图\ref{fig:skbuff}所示。
-		\begin{columns}
-		\begin{column}{0.5\textwidth}
-			数据包在Linux的网络协议栈的不同层之间传递，
-			其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。
-			\\
-			TCP/NC通过\emph{sk\_buff}获得数据包的字节流，
-			然后对数据包进行编码。
-		\end{column}
-		\begin{column}{0.4\textwidth}
-			\vspace{-2em}
-			\begin{figure}
-				\includegraphics[height=4cm]{../figures/skbuff.eps}
-				\caption{skbuff结构}
-				\label{fig:skbuff}
-			\end{figure}
-		\end{column}
-	\end{columns}
-	
-\end{frame}
+%\begin{frame}
+%	\frametitle{关键数据结构}
+%	NC层在NF\_IP\_LOCAL\_IN和NF\_IP\_LOCAL\_OUT这两个钩子点获得的都是单独的报文，
+%	其形式为\emph{sk\_buff}结构体，如图\ref{fig:skbuff}所示。
+%		\begin{columns}
+%		\begin{column}{0.5\textwidth}
+%			数据包在Linux的网络协议栈的不同层之间传递，
+%			其体现形式就是不同层的函数对一个数据包对应的\emph{sk\_buff}进行各种操作。
+%			\\
+%			TCP/NC通过\emph{sk\_buff}获得数据包的字节流，
+%			然后对数据包进行编码。
+%		\end{column}
+%		\begin{column}{0.4\textwidth}
+%			\vspace{-2em}
+%			\begin{figure}
+%				\includegraphics[height=4cm]{../figures/skbuff.eps}
+%				\caption{skbuff结构}
+%				\label{fig:skbuff}
+%			\end{figure}
+%		\end{column}
+%	\end{columns}
+%	
+%\end{frame}
 \subsection{NC层关键技术}
 
 %%NC层总体框架
 \begin{frame}[t]
 	\frametitle{NC层总体框架}
-	\begin{columns}[t]
-		\begin{column}{0.4\textwidth}
-		图\ref{fig:jiagou}为NC层总体框架。
-		虚线框内的即为网络编码层。
-		\end{column}
-		\begin{column}{0.5\textwidth}
-			\vspace{-2.5em}
-			\begin{figure}
-				\includegraphics[height=5cm]{../figures/jiagou.eps}
-				\caption{NC层总体框架}
-				\label{fig:jiagou}
-			\end{figure}
-		\end{column}
-	\end{columns}
+%	\begin{columns}[t]
+%		\begin{column}{0.4\textwidth}
+%		图\ref{fig:jiagou}为NC层总体框架。
+%		虚线框内的即为网络编码层。
+%		\end{column}
+%		\begin{column}{0.5\textwidth}
+%			\vspace{-2.5em}
+%			\begin{figure}
+%				\includegraphics[height=5cm]{../figures/jiagou.eps}
+%				\caption{NC层总体框架}
+%				\label{fig:jiagou}
+%			\end{figure}
+%		\end{column}
+%	\end{columns}
+	\begin{figure}
+		\includegraphics[height=6cm]{../figures/jiagou.eps}
+		\caption{NC层总体框架}
+		\label{fig:jiagou}
+	\end{figure}
 \end{frame}
 %%NC层头部
 \begin{frame}
 	\frametitle{NC层头部}
-	\begin{columns}
-		\begin{column}{0.4\textwidth}
-			发送端需要给产生的编码包添加NC头部，
-			其中包含编码系数等信息，接收端利用这些信息进行解码。
-			图\ref{fig:codingheader}为NC报文的头部。
-		\end{column}
-		\begin{column}{0.6\textwidth}
-			\begin{figure}
-				\includegraphics[height=4cm]{../figures/codingheader.eps}
-				\caption{NC层头部}
-				\label{fig:codingheader}
-			\end{figure}
-		\end{column}
-	\end{columns}
+%	\begin{columns}
+%		\begin{column}{0.4\textwidth}
+%			发送端需要给产生的编码包添加NC头部，
+%			其中包含编码系数等信息，接收端利用这些信息进行解码。
+%			图\ref{fig:codingheader}为NC报文的头部。
+%		\end{column}
+%		\begin{column}{0.6\textwidth}
+%			\begin{figure}
+%				\includegraphics[height=4cm]{../figures/codingheader.eps}
+%				\caption{NC层头部}
+%				\label{fig:codingheader}
+%			\end{figure}
+%		\end{column}
+%	\end{columns}
+	\begin{figure}
+		\includegraphics[height=6cm]{../figures/codingheader.eps}
+		\caption{NC层头部}
+		\label{fig:codingheader}
+	\end{figure}
 	\note{
 	}
 \end{frame}
 %%编码端
 \begin{frame}
 	\frametitle{编码}
-	\begin{columns}
-		\begin{column}{0.4\textwidth}
-			发送端的NC层维护了一个\emph{sk\_buff}的链表\emph{sk\_buff\_head}，
-			存放从TCP层下来的数据包。
-			此链表也作为发送端的编码缓存，
-			其插入操作发生于有数据包文从TCP层下来时；
-			删除操作发生于收到接收端的NC层的ACK报文时。
-			编解码步骤如右图。
-		\end{column}
-		\begin{column}{0.6\textwidth}
-			\vspace{-2.5em}
-			\begin{figure}
-				\includegraphics[height=5.5cm]{figures/encoding.eps}
-			\end{figure}
-		\end{column}
-	\end{columns}
+% \begin{algorithmic}[1]
+%	\Function{FindMysteries}{$S, k$}
+%	\If{$k \le 1$}
+%	\State \textbf{return} $\{\}$ \Comment{The empty set $\emptyset$}
+%	\EndIf
+%	\State $n \gets |S|$ \Comment{Cardinality of $S$}
+%	\State $k \gets \Call{Min}{k, n + 1}$ \Comment{Since maximum of $n$ mysteries}
+%	\State $r\gets \lfloor \lfloor k/2 \rfloor (\tfrac{n+1}{k}) \rfloor$ \Comment{1-indexed rank of the pivot}
+%	\State $p \gets \Call{MedianOfMediansSelect}{S, r}$ \Comment{element of rank $r$}
+%	\State $S_1 \gets \{ x \in S : x < p \}$
+%	\State $S_2 \gets \{ x \in S : x > p \}$
+%	\State \textbf{return} $\Call{FindMysteries}{S_1, \lfloor k/2 \rfloor} \cup\{ p \} \cup \Call{FindMysteries}{S_2, \lceil k/2 \rceil}$
+%	\EndFunction
+%\end{algorithmic}
+\begin{algorithm}
+	\caption{对数据包进行编码} 
+	\label{algo:bianma}
+	\SetKwInOut{Input}{\textbf{输入}}\SetKwInOut{Output}{\textbf{输出}}
+	\Input{\\
+		冗余度因子 $R$;\\
+		编码缓存双向链表 $sk\_buff\_head$;\\
+		冗余度残留系数 $NUM$;\\
+		编码窗口 $TCPNC\_CODE\_WND$;
+	}
+	\Output{\\
+		编码报文链表 $sk\_buff\_ret$
+	}
+	$NUM \leftarrow NUM+R$;\\
+	\While{$NUM \ge 1$}  
+	{  
+		从$sk\_buff\_head$表头开始往后遍历$TCPNC\_CODE\_WND$个报文;\\
+		在$GF\left(2^8\right)$上生成$TCPNC\_CODE\_WND$个系数;\\
+		根据系数和原始数据包计算出编码包;\\
+		给编码报文添加NC头部;\\
+		将编码包加入到$sk\_buff\_ret$链表;\\
+		$NUM \leftarrow NUM-1$;
+	}
+	\Return \ $sk\_buff\_ret$;
+\end{algorithm}
+
+
 \end{frame}
 
 %%解码

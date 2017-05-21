@@ -3,35 +3,20 @@
 %%==========第一节==========
 \subsection{网络编码理论基础}
 %%网络编码概念
-\begin{frame}[t]
+\begin{frame}[allowframebreaks,t]
 	\frametitle{网络编码概念}
-	R.Ahlswede等人在论文“Network Information Flow\footfullcite{Ahlswede2000}”首次提出\emph{网络编码}概念。
-	网络编码建立在一个简单而广泛的概念的基础上：
 	\begin{block}{网络编码}
 		\footnotesize
 		在包交换网络中，
 		中间节点不仅仅是简单地路由转发接收到的数据包，
-		而是对它们进行一些函数操作并计算、转发操作结果。
+		而是对它们进行一些函数操作并计算、转发操作结果\footfullcite{Ahlswede2000}。
 	\end{block}
-	\vspace{1em}
-	运用网络编码可以提高网络吞吐率、均衡网络负载和提高网络带宽利用率。
-	\\
-	我们以简单的蝶形网络为例，说明Network Coding的基本原理。
-	\note{
-		在接收TCP/NC之前，先简单介绍一下网络编码的相关知识。
-	}
-\end{frame}
-%%网络编码的一个简单例子
-\begin{frame}[t]
-	\frametitle{网络编码的一个简单例子}
-	\vspace{-1.5em}
-	\begin{figure}[t]
-		\includegraphics[height=2.5cm]{../figures/butter.eps}
-		\caption{蝶形网络}
-		\label{fig:butter}
-	\end{figure}
 	\vspace{-1em}
-%	图\ref{fig:butter}为一个包交换模型。
+	\begin{figure}[t]
+	\includegraphics[height=3.5cm]{../figures/butter.eps}
+	\caption{蝶形网络}
+	\label{fig:butter}
+	\end{figure}
 	图\ref{fig:butter}(b)为传统的路由算法，
 	其多播吞吐量为1.5。
 	图\ref{fig:butter}(c)为应用了网络编码的路由算法，
@@ -39,8 +24,30 @@
 	\begin{mytheorem}
 	一个网络的最大多播吞吐量取决于分割源节点和目的节点的最小割集\supercite{Ahlswede2000}。
 	\end{mytheorem}
-
+	\note{
+		运用网络编码可以提高网络吞吐率、均衡网络负载和提高网络带宽利用率。
+	}
 \end{frame}
+%%网络编码的一个简单例子
+%\begin{frame}[t]
+%	\frametitle{网络编码的一个简单例子}
+%	\vspace{-1.5em}
+%	\begin{figure}[t]
+%		\includegraphics[height=2.5cm]{../figures/butter.eps}
+%		\caption{蝶形网络}
+%		\label{fig:butter}
+%	\end{figure}
+%	\vspace{-1em}
+%%	图\ref{fig:butter}为一个包交换模型。
+%	图\ref{fig:butter}(b)为传统的路由算法，
+%	其多播吞吐量为1.5。
+%	图\ref{fig:butter}(c)为应用了网络编码的路由算法，
+%	其多播吞吐量为2，且是理论上最大的网络多播吞吐量。
+%	\begin{mytheorem}
+%	一个网络的最大多播吞吐量取决于分割源节点和目的节点的最小割集\supercite{Ahlswede2000}。
+%	\end{mytheorem}
+%
+%\end{frame}
 %%线性网络编码
 \begin{frame}[t,allowframebreaks]
 	\frametitle{线性网络编码}
@@ -150,18 +157,18 @@
 		\centering
 		\begin{boxedminipage}{1\textwidth}
 		\subfloat[]{
-			\includegraphics[width=2in]{../figures/batchundecode.eps}
+			\includegraphics[width=2.5in]{../figures/batchundecode.eps}
 			\label{fig:batchcoding}
 		}
-		\hspace{6em}
 		\subfloat[]{
-			\includegraphics[width=2in]{../figures/pipeline.eps}
+			\includegraphics[width=2.5in]{../figures/pipeline.eps}
 			\label{fig:pipelinecoding}
 		}
 		\end{boxedminipage}
 		\caption{\small (a) Batch Coding ~~ (b) Pipeline Coding}
 		\label{fig:codingMechanism}
 	\end{figure}
+	\vspace{-1em}
 	采用Pipeline Coding的优点：解码时延更低。
 	\note{
 		由于每个编码数据包都是同一个\emph{generation}的数据包的线性组合，
